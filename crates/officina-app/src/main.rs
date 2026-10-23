@@ -68,7 +68,20 @@ fn main() -> anyhow::Result<()> {
 }
 
 fn run_gui() -> anyhow::Result<()> {
-    let options = eframe::NativeOptions::default();
+    let icon_bytes = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/icon.png"));
+    let icon_image = image::load_from_memory(icon_bytes)
+        .map_err(|e| anyhow::anyhow!("icon decode error: {e}"))?;
+    let icon_rgba = icon_image.to_rgba8();
+    let (width, height) = icon_rgba.dimensions();
+    let icon_data = egui::IconData {
+        rgba: icon_rgba.into_raw(),
+        width,
+        height,
+    };
+
+    let mut options = eframe::NativeOptions::default();
+    options.viewport = options.viewport.with_icon(std::sync::Arc::new(icon_data));
+    options.viewport = options.viewport.with_app_id("officina");
     eframe::run_native(
         "Officina",
         options,

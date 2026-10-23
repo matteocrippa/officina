@@ -16,6 +16,7 @@ pub enum AppMsg {
     InstallDone {
         written: usize,
     },
+    CareerLoaded(officina_core::events::Catalog, officina_core::events::Progress),
     GameConfigLoaded(officina_core::game_cfg::GameConfig),
     Error(String),
 }
@@ -26,6 +27,7 @@ pub enum Nav {
     Cars,
     Tracks,
     Weather,
+    Career,
     GameSettings,
     QuickDrive,
     Install,
@@ -75,6 +77,13 @@ pub struct AppState {
     pub game_settings_tab: usize,
     pub game_settings_status: String,
 
+    // Career view state
+    pub career_catalog: Option<officina_core::events::Catalog>,
+    pub career_progress: Option<officina_core::events::Progress>,
+    pub career_loading: bool,
+    pub career_status: String,
+    pub career_pending: Option<(String, Option<String>)>,
+
     pub rx: Option<mpsc::Receiver<AppMsg>>,
     pub tx: mpsc::Sender<AppMsg>,
 }
@@ -118,6 +127,11 @@ impl AppState {
             game_settings_loading: false,
             game_settings_tab: 0,
             game_settings_status: String::new(),
+            career_catalog: None,
+            career_progress: None,
+            career_loading: false,
+            career_status: String::new(),
+            career_pending: None,
             rx: Some(rx),
             tx,
         };
@@ -170,6 +184,27 @@ impl AppState {
                     let _ = tx.send(AppMsg::Error(format!("game config load failed: {e:#}")));
                 }
             }
+        });
+    }
+
+    pub fn load_career(&mut self) {
+        if self.career_catalog.is_some() || self.career_loading {
+            return;
+        }
+        let ac_root = match self.settings.ac_root() {
+            Some(r) => r,
+            None => {
+                self.career_status = "AC root not found".into();
+                return;
+            }
+        };
+        self.career_loading = true;
+        self.career_status = "Loading...".into();
+        let tx = self.tx.clone();
+        std::thread::spawn(move || {
+            let catalog = officina_core::events::scan(&ac_root);
+            let progress = officina_core::events::Progress::load(&ac_root).unwrap_or_default();
+            let _ = tx.send(AppMsg::CareerLoaded(catalog, progress));
         });
     }
 

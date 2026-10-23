@@ -46,7 +46,33 @@ pub fn list_cmd(kind: &str) -> Result<()> {
                 println!("  {}  ({})", w.id, w.name);
             }
         }
-        other => anyhow::bail!("unknown kind: {other} (expected 'cars', 'tracks', or 'weather')"),
+        "events" => {
+            let catalog = officina_core::events::scan(&ac_root);
+            let progress = officina_core::events::Progress::load(&ac_root).unwrap_or_default();
+            println!("{} series / {} special events", catalog.series.len(), catalog.special.len());
+            for s in &catalog.series {
+                println!(
+                    "series {}  —  {}  [{}]",
+                    s.id,
+                    s.name,
+                    if s.completed(&progress) {
+                        "complete"
+                    } else if s.unlocked(&progress) {
+                        "unlocked"
+                    } else {
+                        "locked"
+                    }
+                );
+            }
+            for e in &catalog.special {
+                let p = progress.get(&e.id);
+                println!("special {}  —  {}  (medal {})", e.id, e.name, p.medal);
+            }
+            for err in &catalog.errors {
+                eprintln!("error: {err}");
+            }
+        }
+        other => anyhow::bail!("unknown kind: {other} (expected 'cars', 'tracks', 'weather', or 'events')"),
     }
     Ok(())
 }

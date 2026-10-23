@@ -67,6 +67,12 @@ impl eframe::App for App {
                         self.state.install_status = format!("Installed {} file(s).", written);
                         self.state.trigger_scan();
                     }
+                    AppMsg::CareerLoaded(cat, prog) => {
+                        self.state.career_catalog = Some(cat);
+                        self.state.career_progress = Some(prog);
+                        self.state.career_loading = false;
+                        self.state.career_status = "Loaded.".into();
+                    }
                     AppMsg::GameConfigLoaded(gc) => {
                         self.state.game_config = Some(gc);
                         self.state.game_settings_loading = false;
@@ -88,6 +94,7 @@ impl eframe::App for App {
                 ("Cars", Nav::Cars),
                 ("Tracks", Nav::Tracks),
                 ("Weather", Nav::Weather),
+                ("Career", Nav::Career),
                 ("Game Settings", Nav::GameSettings),
                 ("Quick Drive", Nav::QuickDrive),
                 ("Install", Nav::Install),
@@ -108,6 +115,7 @@ impl eframe::App for App {
             Nav::Cars => views::cars::show(&mut self.state, ui),
             Nav::Tracks => views::tracks::show(&mut self.state, ui),
             Nav::Weather => views::weather::show(&mut self.state, ui),
+            Nav::Career => views::career::show(&mut self.state, ui),
             Nav::GameSettings => views::game_settings::show(&mut self.state, ui),
             Nav::QuickDrive => views::quick_drive::show(&mut self.state, ui),
             Nav::Install => views::install::show(&mut self.state, ui, ctx),

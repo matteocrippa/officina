@@ -1,4 +1,5 @@
 pub mod cars;
+pub mod career;
 pub mod game_settings;
 pub mod install;
 pub mod quick_drive;
