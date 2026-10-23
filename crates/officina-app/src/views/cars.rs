@@ -7,6 +7,8 @@ fn file_uri(p: &std::path::Path) -> String {
     format!("file://{}", p.display().to_string().replace(' ', "%20"))
 }
 
+const ROW_HEIGHT: f32 = 88.0;
+
 pub fn show(state: &mut AppState, ui: &mut Ui) {
     ui.heading("Cars");
     ui.horizontal(|ui| {
@@ -23,8 +25,11 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
         .filter(|c| filter.is_empty() || c.search_text().contains(&filter))
         .collect();
     ui.label(format!("{} / {} cars", cars.len(), state.cars.len()));
-    egui::ScrollArea::vertical().show(ui, |ui| {
-        for car in cars {
+    let num_rows = cars.len();
+    egui::ScrollArea::vertical().show_rows(ui, ROW_HEIGHT, num_rows, |ui, row_range| {
+        for i in row_range {
+            let car = cars[i];
+            ui.set_height(ROW_HEIGHT);
             ui.group(|ui| {
                 ui.horizontal(|ui| {
                     if let Some(p) = car.preview() {
@@ -33,8 +38,10 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
                                 .fit_to_exact_size(egui::vec2(72.0, 72.0)),
                         );
                     } else {
-                        let (rect, _) =
-                            ui.allocate_exact_size(egui::vec2(72.0, 72.0), egui::Sense::hover());
+                        let (rect, _) = ui.allocate_exact_size(
+                            egui::vec2(72.0, 72.0),
+                            egui::Sense::hover(),
+                        );
                         ui.painter().rect_stroke(
                             rect,
                             4.0,
