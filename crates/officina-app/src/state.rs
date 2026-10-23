@@ -25,6 +25,7 @@ pub enum Nav {
     #[default]
     Cars,
     Tracks,
+    Weather,
     QuickDrive,
     Install,
     Settings,
