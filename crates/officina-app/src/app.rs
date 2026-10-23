@@ -24,11 +24,12 @@ impl eframe::App for App {
         }
         for msg in msgs {
             match msg {
-                    AppMsg::ScanDone { cars, tracks } => {
+                    AppMsg::ScanDone { cars, tracks, weather } => {
                         self.state.cars = cars;
                         self.state.tracks = tracks;
+                        self.state.weather = weather;
                         self.state.scanning = false;
-                        self.state.status = format!("{} cars, {} tracks", self.state.cars.len(), self.state.tracks.len());
+                        self.state.status = format!("{} cars, {} tracks, {} weather", self.state.cars.len(), self.state.tracks.len(), self.state.weather.len());
                         // Default qd selections.
                         if self.state.qd_car.is_empty() {
                             if let Some(c) = self.state.cars.first() {
@@ -43,6 +44,15 @@ impl eframe::App for App {
                             if let Some(e) = entries.first() {
                                 self.state.qd_track = e.track_id.clone();
                                 self.state.qd_layout = e.layout.layout_id.clone();
+                            }
+                        }
+                        if self.state.qd_weather.is_empty() {
+                            if let Some(w) = self.state.weather.first() {
+                                self.state.qd_weather = w.id.clone();
+                            }
+                        } else if !self.state.weather.iter().any(|w| w.id == self.state.qd_weather) {
+                            if let Some(w) = self.state.weather.first() {
+                                self.state.qd_weather = w.id.clone();
                             }
                         }
                     }

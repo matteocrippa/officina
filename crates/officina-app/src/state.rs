@@ -8,6 +8,7 @@ pub enum AppMsg {
     ScanDone {
         cars: Vec<content::Car>,
         tracks: Vec<content::Track>,
+        weather: Vec<content::Weather>,
     },
     InstallPlan {
         archive: PathBuf,
@@ -34,6 +35,7 @@ pub struct AppState {
     pub nav: Nav,
     pub cars: Vec<content::Car>,
     pub tracks: Vec<content::Track>,
+    pub weather: Vec<content::Weather>,
     pub scanning: bool,
     pub status: String,
 
@@ -78,6 +80,7 @@ impl AppState {
             nav: Nav::default(),
             cars: Vec::new(),
             tracks: Vec::new(),
+            weather: Vec::new(),
             scanning: false,
             status: "Ready".into(),
             car_filter: String::new(),
@@ -145,7 +148,8 @@ impl AppState {
                 Some(root) => {
                     let cars = content::scan_cars(&root);
                     let tracks = content::scan_tracks(&root);
-                    let _ = tx.send(AppMsg::ScanDone { cars, tracks });
+                    let weather = content::scan_weather(&root);
+                    let _ = tx.send(AppMsg::ScanDone { cars, tracks, weather });
                 }
                 None => {
                     let _ = tx.send(AppMsg::Error("Assetto Corsa not found".into()));

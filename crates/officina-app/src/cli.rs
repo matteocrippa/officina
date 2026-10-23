@@ -39,7 +39,14 @@ pub fn list_cmd(kind: &str) -> Result<()> {
                 println!("  {}  ({})", t.id, t.layouts.iter().map(|l| l.name.as_str()).collect::<Vec<_>>().join(", "));
             }
         }
-        other => anyhow::bail!("unknown kind: {other} (expected 'cars' or 'tracks')"),
+        "weather" => {
+            let weather = content::scan_weather(&ac_root);
+            println!("{} weather:", weather.len());
+            for w in weather {
+                println!("  {}  ({})", w.id, w.name);
+            }
+        }
+        other => anyhow::bail!("unknown kind: {other} (expected 'cars', 'tracks', or 'weather')"),
     }
     Ok(())
 }

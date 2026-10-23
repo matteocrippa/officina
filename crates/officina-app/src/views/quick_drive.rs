@@ -112,8 +112,23 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
         ui.add(egui::Slider::new(&mut state.qd_ambient, -10.0..=50.0));
     });
     ui.horizontal(|ui| {
-        ui.label("Weather id:");
-        ui.text_edit_singleline(&mut state.qd_weather);
+        ui.label("Weather:");
+        let sel = state
+            .weather
+            .iter()
+            .find(|w| w.id == state.qd_weather)
+            .map(|w| format!("{} ({})", w.name, w.id))
+            .unwrap_or_else(|| if state.qd_weather.is_empty() { "select weather".to_string() } else { state.qd_weather.clone() });
+        egui::ComboBox::from_id_salt("qd_weather")
+            .selected_text(sel)
+            .show_ui(ui, |ui| {
+                for w in &state.weather {
+                    let label = format!("{} ({})", w.name, w.id);
+                    if ui.selectable_label(state.qd_weather == w.id, &label).clicked() {
+                        state.qd_weather = w.id.clone();
+                    }
+                }
+            });
     });
     ui.horizontal(|ui| {
         ui.label("Time multiplier:");
