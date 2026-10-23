@@ -1,0 +1,25 @@
+[package]
+name = "acm-app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Assetto Corsa mod manager & launcher (Linux)"
+
+[[bin]]
+name = "acm"
+path = "src/main.rs"
+
+[dependencies]
+ac-core = { path = "../ac-core" }
+anyhow.workspace = true
+clap.workspace = true
+serde.workspace = true
+toml.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+eframe.workspace = true
+egui.workspace = true
+egui_extras.workspace = true
+rfd.workspace = true
+image.workspace = true
+dirs.workspace = true
