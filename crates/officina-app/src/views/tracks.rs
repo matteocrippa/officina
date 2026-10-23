@@ -1,4 +1,4 @@
-use ac_core::content;
+use officina_core::content;
 use egui::Ui;
 
 use crate::state::AppState;
@@ -13,7 +13,7 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
         }
     });
     let filter = state.track_filter.to_lowercase();
-    let entries = ac_core::content::track_entries(&state.tracks);
+    let entries = officina_core::content::track_entries(&state.tracks);
     let filtered: Vec<&content::TrackEntry> = entries
         .iter()
         .filter(|e| filter.is_empty() || e.search_text().contains(&filter))

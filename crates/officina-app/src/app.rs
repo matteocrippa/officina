@@ -39,7 +39,7 @@ impl eframe::App for App {
                             }
                         }
                         if self.state.qd_track.is_empty() {
-                            let entries = ac_core::content::track_entries(&self.state.tracks);
+                            let entries = officina_core::content::track_entries(&self.state.tracks);
                             if let Some(e) = entries.first() {
                                 self.state.qd_track = e.track_id.clone();
                                 self.state.qd_layout = e.layout.layout_id.clone();
@@ -67,7 +67,7 @@ impl eframe::App for App {
         }
 
         egui::SidePanel::left("nav").show(ctx, |ui| {
-            ui.heading("ACM");
+            ui.heading("Officina");
             ui.separator();
             for (label, nav) in [
                 ("Cars", Nav::Cars),

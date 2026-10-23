@@ -80,7 +80,7 @@ pub fn steam_sdl_lib_dirs() -> Vec<PathBuf> {
     return Vec::new();
     #[cfg(not(windows))]
     {
-        let Some(stage) = dirs::cache_dir().map(|d| d.join("acm").join("steam-sdl")) else {
+        let Some(stage) = dirs::cache_dir().map(|d| d.join("officina").join("steam-sdl")) else {
             return Vec::new();
         };
         let mut out = Vec::new();

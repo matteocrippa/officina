@@ -1,4 +1,4 @@
-//! Application settings stored as TOML under ~/.config/acm/settings.toml.
+//! Application settings stored as TOML under ~/.config/officina/settings.toml.
 
 use std::fs;
 use std::path::PathBuf;
@@ -32,7 +32,7 @@ fn default_theme() -> String {
 
 impl Settings {
     pub fn path() -> Option<PathBuf> {
-        dirs::config_dir().map(|d| d.join("acm").join("settings.toml"))
+        dirs::config_dir().map(|d| d.join("officina").join("settings.toml"))
     }
 
     pub fn load() -> Self {

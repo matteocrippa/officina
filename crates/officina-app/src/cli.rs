@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use ac_core::{content, install, launch, paths, settings::Settings};
+use officina_core::{content, install, launch, paths, settings::Settings};
 use anyhow::{Context, Result};
 
 pub fn where_cmd() -> Result<()> {

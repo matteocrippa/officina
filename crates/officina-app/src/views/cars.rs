@@ -1,4 +1,4 @@
-use ac_core::content;
+use officina_core::content;
 use egui::Ui;
 
 use crate::state::AppState;

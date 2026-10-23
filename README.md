@@ -1,4 +1,4 @@
-# ACM — Assetto Corsa Mod Manager & Launcher (Linux)
+# Officina — Mod Manager & Launcher for Assetto Corsa (Linux)
 
 A native, lightweight desktop client for **Assetto Corsa** that runs on **Linux
 (Bazzite, Steam Deck)**. It browses installed cars/tracks/skins, installs mods
@@ -21,13 +21,13 @@ Electron, no .NET, no DirectX — just a small native binary.
   fixed setup, mph). Writes `race.ini` and launches `acs.exe` through Proton.
 - **AC settings discovery** — auto-detects Steam libraries, AC install, Proton
   prefix and compatdata.
-- **CLI** — `acm where`, `acm list cars|tracks`, `acm install <archive>`.
+- **CLI** — `officina where`, `officina list cars|tracks`, `officina install <archive>`.
 - **Steam Deck / Bazzite ready** — runs inside the Steam runtime, handles
   `steam-run` on NixOS, SDL gamepad routing, `PROTON_DISABLE_HIDRAW`.
 
 ## Screenshots
 
-![ACM Cars view](docs/screens/main.png)
+![Officina Cars view](docs/screens/main.png)
 
 ## Requirements
 
@@ -46,31 +46,31 @@ sudo apt install build-essential pkg-config \
 ## Build & run
 
 ```sh
-cargo build --release -p acm-app
-./target/release/acm          # GUI
-./target/release/acm where    # CLI
+cargo build --release -p officina-app
+./target/release/officina          # GUI
+./target/release/officina where    # CLI
 ```
 
 ## CLI
 
 ```sh
-acm where            # print detected paths
-acm list cars         # list installed cars
-acm list tracks       # list installed tracks
-acm install mod.zip   # install a mod archive
+officina where            # print detected paths
+officina list cars         # list installed cars
+officina list tracks       # list installed tracks
+officina install mod.zip   # install a mod archive
 ```
 
 ## Configuration
 
-Settings are stored in `~/.config/acm/settings.toml` (XDG). AC root and Proton
+Settings are stored in `~/.config/officina/settings.toml` (XDG). AC root and Proton
 path are auto-detected but can be overridden in the Settings tab or directly in
 the file.
 
 ## Project structure
 
-- `crates/ac-core` — pure domain logic, file formats, Steam/Proton paths, content
+- `crates/officina-core` — pure domain logic, file formats, Steam/Proton paths, content
   scanning, `race.ini`, mod installer. No UI dependencies.
-- `crates/acm-app` — egui desktop app + CLI entrypoint.
+- `crates/officina-app` — egui desktop app + CLI entrypoint.
 
 ## Provenance
 

@@ -9,7 +9,7 @@ mod state;
 mod views;
 
 #[derive(Parser)]
-#[command(name = "acm", version, about = "Assetto Corsa mod manager & launcher (Linux)")]
+#[command(name = "officina", version, about = "Officina — mod manager & launcher for Assetto Corsa (Linux)")]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
@@ -47,7 +47,7 @@ fn main() -> anyhow::Result<()> {
 fn run_gui() -> anyhow::Result<()> {
     let options = eframe::NativeOptions::default();
     eframe::run_native(
-        "ACM - Assetto Corsa Manager",
+        "Officina",
         options,
         Box::new(|cc| {
             egui_extras::install_image_loaders(&cc.egui_ctx);

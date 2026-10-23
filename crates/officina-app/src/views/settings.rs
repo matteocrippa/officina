@@ -21,7 +21,7 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
         }
     });
     let root = state.settings.ac_root().map(|p| p.display().to_string()).unwrap_or_else(|| "<not found>".into());
-    let compat = state.settings.ac_root().and_then(|r| ac_core::paths::compat_data_dir(&r)).map(|p| p.display().to_string()).unwrap_or_else(|| "<none>".into());
+    let compat = state.settings.ac_root().and_then(|r| officina_core::paths::compat_data_dir(&r)).map(|p| p.display().to_string()).unwrap_or_else(|| "<none>".into());
     ui.label(format!("Resolved AC root: {root}"));
     ui.label(format!("Compatdata: {compat}"));
     if ui.button("Rescan content").clicked() {

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::sync::mpsc;
 
-use ac_core::{content, install, settings::Settings};
+use officina_core::{content, install, settings::Settings};
 
 #[derive(Debug, Clone)]
 pub enum AppMsg {
@@ -119,12 +119,12 @@ impl AppState {
             s.qd_ambient = qd.conditions.ambient_c;
             s.qd_weather = qd.conditions.weather_id.clone();
             s.qd_time_mult = qd.conditions.time_multiplier;
-            if let ac_core::race::Mode::Practice { minutes } = qd.mode {
+            if let officina_core::race::Mode::Practice { minutes } = qd.mode {
                 s.qd_mode = 0;
                 s.qd_minutes = minutes;
-            } else if matches!(qd.mode, ac_core::race::Mode::Hotlap) {
+            } else if matches!(qd.mode, officina_core::race::Mode::Hotlap) {
                 s.qd_mode = 1;
-            } else if let ac_core::race::Mode::Race { laps, .. } = qd.mode {
+            } else if let officina_core::race::Mode::Race { laps, .. } = qd.mode {
                 s.qd_mode = 2;
                 s.qd_laps = laps;
             }
