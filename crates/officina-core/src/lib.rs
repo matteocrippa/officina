@@ -3,6 +3,7 @@
 
 pub const AC_APP_ID: u32 = 244210;
 
+pub mod acd;
 pub mod content;
 pub mod game_cfg;
 pub mod ini;

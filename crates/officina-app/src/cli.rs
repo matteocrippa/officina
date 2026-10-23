@@ -63,3 +63,17 @@ pub fn install_cmd(archive: PathBuf) -> Result<()> {
     println!("Installed {} file(s).", written);
     Ok(())
 }
+
+pub fn acd_unpack_cmd(file: PathBuf, out: Option<PathBuf>) -> Result<()> {
+    let out = out.unwrap_or_else(|| file.with_file_name("data"));
+    let n = officina_core::acd::unpack(&file, &out).context("unpacking")?;
+    println!("unpacked {n} files to {}", out.display());
+    Ok(())
+}
+
+pub fn acd_pack_cmd(dir: PathBuf, out: Option<PathBuf>) -> Result<()> {
+    let out = out.unwrap_or_else(|| dir.with_file_name("data.acd"));
+    let n = officina_core::acd::pack(&dir, &out).context("packing")?;
+    println!("packed {n} files into {}", out.display());
+    Ok(())
+}

@@ -28,6 +28,25 @@ enum Commands {
     Install {
         archive: PathBuf,
     },
+    /// Pack/unpack data.acd files.
+    Acd {
+        #[command(subcommand)]
+        action: AcdAction,
+    },
+}
+
+#[derive(Subcommand)]
+enum AcdAction {
+    /// Decrypt data.acd into a folder (default: <car>/data).
+    Unpack {
+        file: PathBuf,
+        out: Option<PathBuf>,
+    },
+    /// Encrypt a data folder into data.acd (default: <car>/data.acd).
+    Pack {
+        dir: PathBuf,
+        out: Option<PathBuf>,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
@@ -40,6 +59,10 @@ fn main() -> anyhow::Result<()> {
         Some(Commands::Where) => cli::where_cmd(),
         Some(Commands::List { kind }) => cli::list_cmd(&kind),
         Some(Commands::Install { archive }) => cli::install_cmd(archive),
+        Some(Commands::Acd { action }) => match action {
+            AcdAction::Unpack { file, out } => cli::acd_unpack_cmd(file, out),
+            AcdAction::Pack { dir, out } => cli::acd_pack_cmd(dir, out),
+        },
         None => run_gui(),
     }
 }
