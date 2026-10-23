@@ -3,7 +3,6 @@ use std::sync::mpsc;
 
 use officina_core::{content, install, settings::Settings};
 
-#[derive(Debug, Clone)]
 pub enum AppMsg {
     ScanDone {
         cars: Vec<content::Car>,
@@ -17,6 +16,7 @@ pub enum AppMsg {
     InstallDone {
         written: usize,
     },
+    GameConfigLoaded(officina_core::game_cfg::GameConfig),
     Error(String),
 }
 
@@ -26,6 +26,7 @@ pub enum Nav {
     Cars,
     Tracks,
     Weather,
+    GameSettings,
     QuickDrive,
     Install,
     Settings,
@@ -68,6 +69,12 @@ pub struct AppState {
     pub qd_use_mph: bool,
     pub qd_status: String,
 
+    // Game settings view state
+    pub game_config: Option<officina_core::game_cfg::GameConfig>,
+    pub game_settings_loading: bool,
+    pub game_settings_tab: usize,
+    pub game_settings_status: String,
+
     pub rx: Option<mpsc::Receiver<AppMsg>>,
     pub tx: mpsc::Sender<AppMsg>,
 }
@@ -107,6 +114,10 @@ impl AppState {
             qd_fixed_setup: false,
             qd_use_mph: false,
             qd_status: String::new(),
+            game_config: None,
+            game_settings_loading: false,
+            game_settings_tab: 0,
+            game_settings_status: String::new(),
             rx: Some(rx),
             tx,
         };
@@ -134,6 +145,32 @@ impl AppState {
             }
         }
         s
+    }
+
+    pub fn load_game_config(&mut self) {
+        if self.game_config.is_some() || self.game_settings_loading {
+            return;
+        }
+        let ac_root = match self.settings.ac_root() {
+            Some(r) => r,
+            None => {
+                self.game_settings_status = "AC root not found".into();
+                return;
+            }
+        };
+        self.game_settings_loading = true;
+        self.game_settings_status = "Loading...".into();
+        let tx = self.tx.clone();
+        std::thread::spawn(move || {
+            match officina_core::game_cfg::load(&ac_root) {
+                Ok(gc) => {
+                    let _ = tx.send(AppMsg::GameConfigLoaded(gc));
+                }
+                Err(e) => {
+                    let _ = tx.send(AppMsg::Error(format!("game config load failed: {e:#}")));
+                }
+            }
+        });
     }
 
     pub fn trigger_scan(&mut self) {

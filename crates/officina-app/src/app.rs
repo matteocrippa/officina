@@ -67,6 +67,11 @@ impl eframe::App for App {
                         self.state.install_status = format!("Installed {} file(s).", written);
                         self.state.trigger_scan();
                     }
+                    AppMsg::GameConfigLoaded(gc) => {
+                        self.state.game_config = Some(gc);
+                        self.state.game_settings_loading = false;
+                        self.state.game_settings_status = "Loaded.".into();
+                    }
                     AppMsg::Error(e) => {
                         self.state.scanning = false;
                         self.state.install_busy = false;
@@ -83,6 +88,7 @@ impl eframe::App for App {
                 ("Cars", Nav::Cars),
                 ("Tracks", Nav::Tracks),
                 ("Weather", Nav::Weather),
+                ("Game Settings", Nav::GameSettings),
                 ("Quick Drive", Nav::QuickDrive),
                 ("Install", Nav::Install),
                 ("Settings", Nav::Settings),
@@ -102,6 +108,7 @@ impl eframe::App for App {
             Nav::Cars => views::cars::show(&mut self.state, ui),
             Nav::Tracks => views::tracks::show(&mut self.state, ui),
             Nav::Weather => views::weather::show(&mut self.state, ui),
+            Nav::GameSettings => views::game_settings::show(&mut self.state, ui),
             Nav::QuickDrive => views::quick_drive::show(&mut self.state, ui),
             Nav::Install => views::install::show(&mut self.state, ui, ctx),
             Nav::Settings => views::settings::show(&mut self.state, ui),
