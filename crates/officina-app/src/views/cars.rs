@@ -26,6 +26,8 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
         .collect();
     ui.label(format!("{} / {} cars", cars.len(), state.cars.len()));
 
+    let mut uninstall_target: Option<std::path::PathBuf> = None;
+
     ui.columns(2, |cols| {
         cols[0].vertical(|ui| {
             egui::ScrollArea::vertical().show_rows(ui, ROW_HEIGHT, cars.len(), |ui, row_range| {
@@ -141,6 +143,10 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
                     if let Some(err) = &car.ui_error {
                         ui.colored_label(egui::Color32::RED, format!("ui error: {err}"));
                     }
+                    ui.separator();
+                    if ui.button("Uninstall car (to trash)").clicked() {
+                        uninstall_target = Some(car.dir.clone());
+                    }
                 } else {
                     ui.label("Car not found.");
                 }
@@ -149,4 +155,14 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
             }
         });
     });
+    if let Some(p) = uninstall_target {
+        match officina_core::trash::move_to_trash(&p) {
+            Ok(_) => {
+                state.selected_car = None;
+                state.status = "Moved to trash.".into();
+                state.trigger_scan();
+            }
+            Err(e) => state.status = format!("Uninstall failed: {e}"),
+        }
+    }
 }

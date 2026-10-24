@@ -25,6 +25,35 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
     ui.label(format!("Resolved AC root: {root}"));
     ui.label(format!("Compatdata: {compat}"));
     ui.separator();
+    ui.heading("Settings backups");
+    if ui.button("Create backup now").clicked() {
+        if let Some(root) = state.settings.ac_root() {
+            match officina_core::backup::create_backup(&root) {
+                Ok(p) => state.game_settings_status = format!("Backup created: {}", p.display()),
+                Err(e) => state.game_settings_status = format!("Backup failed: {e:#}"),
+            }
+        } else {
+            state.game_settings_status = "AC root not found.".into();
+        }
+    }
+    let backups = officina_core::backup::list_backups();
+    if !backups.is_empty() {
+        ui.label(format!("{} backup(s):", backups.len()));
+        for b in &backups {
+            ui.horizontal(|ui| {
+                ui.label(b.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default());
+                if ui.button("Restore").clicked() {
+                    if let Some(root) = state.settings.ac_root() {
+                        match officina_core::backup::restore_backup(b, &root) {
+                            Ok(_) => state.game_settings_status = "Restored.".into(),
+                            Err(e) => state.game_settings_status = format!("Restore failed: {e:#}"),
+                        }
+                    }
+                }
+            });
+        }
+    }
+    ui.separator();
     ui.heading("Updates");
     ui.horizontal(|ui| {
         ui.label("Repo (owner/name):");
