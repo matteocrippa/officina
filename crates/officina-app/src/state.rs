@@ -83,6 +83,9 @@ pub struct AppState {
     // Check mods view state
     pub check_mods_status: String,
 
+    // Gamepad state
+    pub gamepad: crate::gamepad::GamepadState,
+
     // Career view state
     pub career_catalog: Option<officina_core::events::Catalog>,
     pub career_progress: Option<officina_core::events::Progress>,
@@ -135,6 +138,7 @@ impl AppState {
             game_settings_tab: 0,
             game_settings_status: String::new(),
             check_mods_status: String::new(),
+            gamepad: crate::gamepad::GamepadState::new(),
             career_catalog: None,
             career_progress: None,
             career_loading: false,

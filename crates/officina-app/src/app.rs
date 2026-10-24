@@ -15,6 +15,7 @@ impl Default for App {
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.state.gamepad.poll(ctx);
         // Poll async messages.
         let mut msgs = Vec::new();
         if let Some(rx) = &self.state.rx {
@@ -111,6 +112,7 @@ impl eframe::App for App {
             if self.state.scanning || self.state.install_busy {
                 ui.spinner();
             }
+            ui.small(format!("gamepad: {}", self.state.gamepad.status));
         });
 
         egui::CentralPanel::default().show(ctx, |ui| match self.state.nav {
