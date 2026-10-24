@@ -12,6 +12,7 @@ use anyhow::{Context, Result, bail};
 pub enum Kind {
     Car,
     Track,
+    Generic,
 }
 
 impl Kind {
@@ -19,6 +20,14 @@ impl Kind {
         match self {
             Kind::Car => "cars",
             Kind::Track => "tracks",
+            Kind::Generic => "",
+        }
+    }
+    pub fn label(self) -> &'static str {
+        match self {
+            Kind::Car => "Car",
+            Kind::Track => "Track",
+            Kind::Generic => "Generic/Patch",
         }
     }
 }
@@ -203,7 +212,11 @@ pub fn plan(archive: &Path, ac_root: &Path) -> Result<Vec<Item>> {
             {
                 bail!("unsafe content identifier: {id}");
             }
-            let target = ac_root.join("content").join(kind.folder()).join(&id);
+            let target = if kind == Kind::Generic {
+                ac_root.to_path_buf()
+            } else {
+                ac_root.join("content").join(kind.folder()).join(&id)
+            };
             Ok(Item {
                 exists: target.exists(),
                 kind,
@@ -214,7 +227,14 @@ pub fn plan(archive: &Path, ac_root: &Path) -> Result<Vec<Item>> {
         })
         .collect::<Result<Vec<_>>>()?;
     if items.is_empty() {
-        bail!("no cars or tracks found in {}", archive.display());
+        // Fall back to generic extraction into the AC root (CSP, Sol, Pure, ...).
+        return Ok(vec![Item {
+            exists: ac_root.exists(),
+            kind: Kind::Generic,
+            id: "patch".to_string(),
+            prefix: String::new(),
+            target: ac_root.to_path_buf(),
+        }]);
     }
     Ok(items)
 }

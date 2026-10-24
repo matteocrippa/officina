@@ -46,7 +46,7 @@ pub fn show(state: &mut AppState, ui: &mut Ui, ctx: &egui::Context) {
     if let Some(plan) = &state.install_plan {
         ui.label(format!("Planned {} item(s):", plan.len()));
         for it in plan {
-            ui.label(format!("  {:?} {}  (exists: {})", it.kind, it.id, it.exists));
+            ui.label(format!("  {} {}  (exists: {})", it.kind.label(), it.id, it.exists));
             ui.small(format!("    -> {}", it.target.display()));
         }
     }

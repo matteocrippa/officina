@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Officina
+Comment=Mod manager and launcher for Assetto Corsa (Linux)
+Exec=officina
+Icon=officina
+Terminal=false
+Categories=Game;Utility;
+StartupWMClass=officina
