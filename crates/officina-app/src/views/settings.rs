@@ -24,6 +24,39 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
     let compat = state.settings.ac_root().and_then(|r| officina_core::paths::compat_data_dir(&r)).map(|p| p.display().to_string()).unwrap_or_else(|| "<none>".into());
     ui.label(format!("Resolved AC root: {root}"));
     ui.label(format!("Compatdata: {compat}"));
+    ui.separator();
+    ui.heading("Updates");
+    ui.horizontal(|ui| {
+        ui.label("Repo (owner/name):");
+        let mut r = state.settings.update_repo.clone().unwrap_or_default();
+        if ui.text_edit_singleline(&mut r).lost_focus() {
+            state.settings.update_repo = if r.is_empty() { None } else { Some(r) };
+            let _ = state.settings.save();
+        }
+    });
+    ui.label(format!("Current version: {}", crate::updater::current_version()));
+    if ui.button("Check for updates").clicked() {
+        if let Some(repo) = state.settings.update_repo.clone() {
+            match crate::updater::check_latest(&repo) {
+                Ok(tag) => state.game_settings_status = format!("Latest: {tag}"),
+                Err(e) => state.game_settings_status = format!("Check failed: {e}"),
+            }
+        } else {
+            state.game_settings_status = "Set update_repo first.".into();
+        }
+    }
+    if ui.button("Download & install update").clicked() {
+        if let Some(repo) = state.settings.update_repo.clone() {
+            state.game_settings_status = "Updating...".into();
+            match crate::updater::download_and_install(&repo) {
+                Ok(msg) => state.game_settings_status = msg,
+                Err(e) => state.game_settings_status = format!("Update failed: {e}"),
+            }
+        } else {
+            state.game_settings_status = "Set update_repo first.".into();
+        }
+    }
+    ui.label(&state.game_settings_status);
     if ui.button("Rescan content").clicked() {
         state.trigger_scan();
     }

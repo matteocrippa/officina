@@ -17,6 +17,8 @@ pub struct Settings {
     #[serde(default = "default_theme")]
     pub theme: String,
     #[serde(default)]
+    pub update_repo: Option<String>,
+    #[serde(default)]
     pub last_car: Option<String>,
     #[serde(default)]
     pub last_track: Option<String>,
