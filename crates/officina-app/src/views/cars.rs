@@ -27,6 +27,8 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
     ui.label(format!("{} / {} cars", cars.len(), state.cars.len()));
 
     let mut uninstall_target: Option<std::path::PathBuf> = None;
+    let mut disable_target: Option<std::path::PathBuf> = None;
+    let mut enable_target: Option<String> = None;
 
     ui.columns(2, |cols| {
         cols[0].vertical(|ui| {
@@ -147,6 +149,9 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
                     if ui.button("Uninstall car (to trash)").clicked() {
                         uninstall_target = Some(car.dir.clone());
                     }
+                    if ui.button("Disable car").clicked() {
+                        disable_target = Some(car.dir.clone());
+                    }
                 } else {
                     ui.label("Car not found.");
                 }
@@ -155,6 +160,22 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
             }
         });
     });
+    // Disabled cars section
+    let ac_root = state.settings.ac_root();
+    let disabled = ac_root.as_ref().map(|r| officina_core::mods::list_disabled(r, "cars")).unwrap_or_default();
+    if !disabled.is_empty() {
+        ui.separator();
+        ui.label(format!("Disabled cars ({}):", disabled.len()));
+        for id in &disabled {
+            ui.horizontal(|ui| {
+                ui.label(id);
+                if ui.button("Enable").clicked() {
+                    enable_target = Some(id.clone());
+                }
+            });
+        }
+    }
+
     if let Some(p) = uninstall_target {
         match officina_core::trash::move_to_trash(&p) {
             Ok(_) => {
@@ -163,6 +184,23 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
                 state.trigger_scan();
             }
             Err(e) => state.status = format!("Uninstall failed: {e}"),
+        }
+    }
+    if let Some(dir) = disable_target {
+        if let Some(root) = state.settings.ac_root() {
+            let id = dir.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+            match officina_core::mods::disable(&root, "cars", &id) {
+                Ok(_) => { state.selected_car = None; state.status = "Disabled.".into(); state.trigger_scan(); }
+                Err(e) => state.status = format!("Disable failed: {e}"),
+            }
+        }
+    }
+    if let Some(id) = enable_target {
+        if let Some(root) = state.settings.ac_root() {
+            match officina_core::mods::enable(&root, "cars", &id) {
+                Ok(_) => { state.status = "Enabled.".into(); state.trigger_scan(); }
+                Err(e) => state.status = format!("Enable failed: {e}"),
+            }
         }
     }
 }
