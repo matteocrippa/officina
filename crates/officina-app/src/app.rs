@@ -103,7 +103,8 @@ impl eframe::App for App {
                 ("Install", Nav::Install),
                 ("Settings", Nav::Settings),
             ] {
-                if ui.selectable_label(self.state.nav == nav, label).clicked() {
+                let entry = format!("{}  {}", crate::icons::nav(nav), label);
+                if ui.selectable_label(self.state.nav == nav, entry).clicked() {
                     self.state.nav = nav;
                 }
             }

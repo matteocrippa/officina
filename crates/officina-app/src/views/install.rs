@@ -2,10 +2,11 @@ use std::path::PathBuf;
 
 use egui::Ui;
 
+use crate::icons;
 use crate::state::AppState;
 
 pub fn show(state: &mut AppState, ui: &mut Ui, ctx: &egui::Context) {
-    ui.heading("Install");
+    ui.heading(format!("{} Install", icons::nav(crate::state::Nav::Install)));
     ui.label("Drop a .zip/.7z/.rar archive here, or pick a file.");
 
     // Handle drag-and-drop.

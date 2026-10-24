@@ -6,6 +6,7 @@ use tracing_subscriber::EnvFilter;
 mod app;
 mod cli;
 mod gamepad;
+mod icons;
 mod state;
 mod updater;
 mod views;

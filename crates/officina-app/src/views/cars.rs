@@ -1,6 +1,7 @@
 use officina_core::content;
 use egui::Ui;
 
+use crate::icons;
 use crate::state::AppState;
 
 fn file_uri(p: &std::path::Path) -> String {
@@ -10,11 +11,11 @@ fn file_uri(p: &std::path::Path) -> String {
 const ROW_HEIGHT: f32 = 88.0;
 
 pub fn show(state: &mut AppState, ui: &mut Ui) {
-    ui.heading("Cars");
+    ui.heading(format!("{} Cars", icons::nav(crate::state::Nav::Cars)));
     ui.horizontal(|ui| {
         ui.label("Filter:");
         ui.text_edit_singleline(&mut state.car_filter);
-        if ui.button("Rescan").clicked() {
+        if ui.button(format!("{} Rescan", icons::RESCAN)).clicked() {
             state.trigger_scan();
         }
     });

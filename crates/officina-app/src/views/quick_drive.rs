@@ -4,6 +4,7 @@ use officina_core::content;
 use officina_core::launch::{self, LaunchOptions};
 use officina_core::race::{self, Conditions, Mode, QuickDrive};
 
+use crate::icons;
 use crate::state::AppState;
 
 pub fn show(state: &mut AppState, ui: &mut Ui) {
@@ -117,13 +118,17 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
             .weather
             .iter()
             .find(|w| w.id == state.qd_weather)
-            .map(|w| format!("{} ({})", w.name, w.id))
+            .map(|w| {
+                let (ic, _) = icons::weather(w);
+                format!("{} {} ({})", ic, w.name, w.id)
+            })
             .unwrap_or_else(|| if state.qd_weather.is_empty() { "select weather".to_string() } else { state.qd_weather.clone() });
         egui::ComboBox::from_id_salt("qd_weather")
             .selected_text(sel)
             .show_ui(ui, |ui| {
                 for w in &state.weather {
-                    let label = format!("{} ({})", w.name, w.id);
+                    let (ic, _) = icons::weather(w);
+                    let label = format!("{} {} ({})", ic, w.name, w.id);
                     if ui.selectable_label(state.qd_weather == w.id, &label).clicked() {
                         state.qd_weather = w.id.clone();
                     }
