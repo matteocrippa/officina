@@ -11,3 +11,5 @@
 
 # Logs
 *.log
+# Command Code local state
+.commandcode/

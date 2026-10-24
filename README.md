@@ -1,114 +1,62 @@
-# Officina — Mod Manager & Launcher for Assetto Corsa (Linux)
+# 🏎️ Officina
 
-A native, lightweight desktop client for **Assetto Corsa** that runs on **Linux
-(Bazzite, Steam Deck)**. It browses installed cars/tracks/skins, installs mods
-from local archives, and launches the game through Proton with a full Quick
-Drive setup.
+Mod manager & launcher for **Assetto Corsa** on Linux (Bazzite, Steam Deck).
 
-Built in Rust with **egui/eframe** (no webview, Steam Deck-friendly). No
-Electron, no .NET, no DirectX — just a small native binary.
-
-## Features
-
-- **Cars / Tracks browsers** — searchable, filterable lists with brand grouping,
-  specs, skins, badges, track layouts, lengths, pit boxes.
-- **Mod installer** — drag-and-drop or file-pick `.zip` / `.7z` / `.rar` /
-  `.tar.gz` archives. Auto-detects car and track structures and extracts them
-  into your Assetto Corsa directory (with overwrite confirmation).
-- **Quick Drive** — pick car, skin, track and layout; choose Practice, Hotlap
-  or Race (laps, opponents, AI level, starting grid); full conditions (time of
-  day, ambient/road temperature, weather, time multiplier, wind, penalties,
-  fixed setup, mph). Writes `race.ini` and launches `acs.exe` through Proton.
-- **AC settings discovery** — auto-detects Steam libraries, AC install, Proton
-  prefix and compatdata.
-- **CLI** — `officina where`, `officina list cars|tracks`, `officina install <archive>`.
-- **Steam Deck / Bazzite ready** — runs inside the Steam runtime, handles
-  `steam-run` on NixOS, SDL gamepad routing, `PROTON_DISABLE_HIDRAW`.
-- **Nicer UI** — monochrome icons throughout (navigation, weather conditions,
-  rescan/install actions) to reinforce state at a glance.
-
-## Screenshots
+Native Rust + egui. No Electron, no .NET — just a small binary.
 
 ![Officina Cars view](docs/screens/main.png)
 
-## Requirements
+## ✨ Features
 
-- Assetto Corsa installed via Steam (run it once from Steam so the Proton
-  prefix is created).
-- Proton enabled for Assetto Corsa (Proton-GE 9-20+ recommended).
-- Rust 1.80+ to build.
+- 🚗 **Cars / 🏁 Tracks** — browse, filter, view specs, skins, badges
+- 📦 **Mod installer** — drag & drop `.zip`/`.7z`/`.rar`/`.tar.gz` (cars, tracks, CSP, Sol, Pure)
+- ⚡ **Quick Drive** — car/skin/track, sessions, laps, opponents, weather/time/temp
+- 🏆 **Career & Special Events** — series progression, medals, launch
+- ⚙️ **Game Settings** — video/audio/assists/gameplay/controls INIs
+- 🔧 **Patches** — CSP/Sol/Pure detection & install
+- 🔍 **Check Mods** — missing files, AI lines, liveries
+- 📂 **acd pack/unpack** — decrypt/encrypt `data.acd`
+- 🎮 **Gamepad** navigation (gilrs)
+- 🔄 **Self-update** from GitHub Releases
+- 🗑️ **Uninstall to trash**, enable/disable mods (JSGME-style)
+- 💾 **Settings backups** with restore
+- 🖥️ **CLI** — `officina where|list|install|check|acd`
 
-Build dependencies (Debian/Ubuntu):
-
-```sh
-sudo apt install build-essential pkg-config \
-  libxkbcommon-dev libwayland-dev libx11-dev libfontconfig-dev libvulkan-dev
-```
-
-## Install
-
-One-liner (downloads a prebuilt binary when available, otherwise builds from
-source — requires Rust + cargo):
+## 🚀 Install
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/matteocrippa/officina/main/install.sh | sh
 ```
 
-Or with wget:
-
-```sh
-wget -qO- https://raw.githubusercontent.com/matteocrippa/officina/main/install.sh | sh
-```
-
-Installs to `~/.local/bin/officina` (override with `PREFIX=/usr/local`). Make sure
-`~/.local/bin` is on your `PATH`.
-
-## Getting started
-
-1. Launch `officina` (GUI) or run `officina where` to verify auto-detected paths.
-2. If Assetto Corsa is not auto-detected, open **Settings** and set the AC root
-   (the folder containing `acs.exe` / `content/`).
-3. On first scan, cars/tracks/weather are loaded automatically. Use **Rescan**
-   after installing mods.
-4. Quick Drive: pick car/skin/track, configure conditions, click **Go!** to
-   write `race.ini` and launch through Proton.
-
-## Build & run
+Or build from source:
 
 ```sh
 cargo build --release -p officina-app
-./target/release/officina          # GUI
-./target/release/officina where    # CLI
+./target/release/officina
 ```
 
-## CLI
+Deps (Debian/Ubuntu): `build-essential pkg-config libxkbcommon-dev libwayland-dev libx11-dev libfontconfig-dev libvulkan-dev`
+
+## ⌨️ CLI
 
 ```sh
-officina where            # print detected paths
-officina list cars         # list installed cars
-officina list tracks       # list installed tracks
-officina install mod.zip   # install a mod archive
+officina where
+officina list cars|tracks|weather|events
+officina install mod.zip
+officina check
+officina acd unpack data.acd [out_dir]
+officina acd pack data_dir [data.acd]
 ```
 
-## Configuration
+## ⚙️ Config
 
-Settings are stored in `~/.config/officina/settings.toml` (XDG). AC root and Proton
-path are auto-detected but can be overridden in the Settings tab or directly in
-the file.
+`~/.config/officina/settings.toml` — AC root & Proton auto-detected, overridable.
 
-## Project structure
+## 📁 Structure
 
-- `crates/officina-core` — pure domain logic, file formats, Steam/Proton paths, content
-  scanning, `race.ini`, mod installer. No UI dependencies.
-- `crates/officina-app` — egui desktop app + CLI entrypoint.
+- `crates/officina-core` — domain logic (no UI)
+- `crates/officina-app` — egui app + CLI
 
-## Provenance
+## 📜 License
 
-File format logic and setup conventions follow Assetto Corsa's AcTools library
-(MS-PL, © gro-ove). `data.acd` key derivation was reverse-engineered from
-`AcTools.AcdEncryption` for file-format interoperability. No closed license
-checks, proprietary keys or private API endpoints are included.
-
-## License
-
-MIT
+MIT — see [LICENSE.md](LICENSE.md). AC formats follow AcTools (MS-PL, © gro-ove).
