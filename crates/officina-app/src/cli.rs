@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use officina_core::{content, install, launch, paths, settings::Settings};
+use officina_core::{content, install, launch, paths, settings::Settings, validate};
 use anyhow::{Context, Result};
 
 pub fn where_cmd() -> Result<()> {
@@ -87,6 +87,21 @@ pub fn install_cmd(archive: PathBuf) -> Result<()> {
     }
     let written = install::install(&archive, &items).context("installing")?;
     println!("Installed {} file(s).", written);
+    Ok(())
+}
+
+pub fn check_cmd() -> Result<()> {
+    let s = Settings::load();
+    let ac_root = s.ac_root().context("Assetto Corsa install not found")?;
+    let issues = validate::check(&ac_root);
+    if issues.is_empty() {
+        println!("No issues found.");
+    } else {
+        println!("{} issue(s):", issues.len());
+        for i in issues {
+            println!("  [{}] {} — {}", i.kind, i.path.display(), i.message);
+        }
+    }
     Ok(())
 }
 

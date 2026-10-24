@@ -27,6 +27,7 @@ pub enum Nav {
     Cars,
     Tracks,
     Weather,
+    CheckMods,
     Patches,
     Career,
     GameSettings,
@@ -79,6 +80,9 @@ pub struct AppState {
     pub game_settings_tab: usize,
     pub game_settings_status: String,
 
+    // Check mods view state
+    pub check_mods_status: String,
+
     // Career view state
     pub career_catalog: Option<officina_core::events::Catalog>,
     pub career_progress: Option<officina_core::events::Progress>,
@@ -130,6 +134,7 @@ impl AppState {
             game_settings_loading: false,
             game_settings_tab: 0,
             game_settings_status: String::new(),
+            check_mods_status: String::new(),
             career_catalog: None,
             career_progress: None,
             career_loading: false,

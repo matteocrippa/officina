@@ -1,5 +1,6 @@
 pub mod cars;
 pub mod career;
+pub mod check_mods;
 pub mod game_settings;
 pub mod install;
 pub mod patches;

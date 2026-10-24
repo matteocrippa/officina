@@ -14,3 +14,4 @@ pub mod launch;
 pub mod paths;
 pub mod race;
 pub mod settings;
+pub mod validate;

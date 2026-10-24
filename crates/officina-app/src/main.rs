@@ -28,6 +28,8 @@ enum Commands {
     Install {
         archive: PathBuf,
     },
+    /// Validate installed content (missing files, AI lines, liveries).
+    Check,
     /// Pack/unpack data.acd files.
     Acd {
         #[command(subcommand)]
@@ -59,6 +61,7 @@ fn main() -> anyhow::Result<()> {
         Some(Commands::Where) => cli::where_cmd(),
         Some(Commands::List { kind }) => cli::list_cmd(&kind),
         Some(Commands::Install { archive }) => cli::install_cmd(archive),
+        Some(Commands::Check) => cli::check_cmd(),
         Some(Commands::Acd { action }) => match action {
             AcdAction::Unpack { file, out } => cli::acd_unpack_cmd(file, out),
             AcdAction::Pack { dir, out } => cli::acd_pack_cmd(dir, out),
