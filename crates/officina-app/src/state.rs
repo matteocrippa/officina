@@ -44,6 +44,7 @@ pub struct AppState {
     pub status: String,
 
     pub car_filter: String,
+    pub selected_car: Option<String>,
     pub track_filter: String,
 
     // Install view state
@@ -101,6 +102,7 @@ impl AppState {
             scanning: false,
             status: "Ready".into(),
             car_filter: String::new(),
+            selected_car: None,
             track_filter: String::new(),
             install_archive: None,
             install_plan: None,

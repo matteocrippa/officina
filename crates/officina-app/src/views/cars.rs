@@ -25,50 +25,128 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
         .filter(|c| filter.is_empty() || c.search_text().contains(&filter))
         .collect();
     ui.label(format!("{} / {} cars", cars.len(), state.cars.len()));
-    let num_rows = cars.len();
-    egui::ScrollArea::vertical().show_rows(ui, ROW_HEIGHT, num_rows, |ui, row_range| {
-        for i in row_range {
-            let car = cars[i];
-            ui.set_height(ROW_HEIGHT);
-            ui.group(|ui| {
-                ui.horizontal(|ui| {
-                    if let Some(p) = car.preview() {
+
+    ui.columns(2, |cols| {
+        cols[0].vertical(|ui| {
+            egui::ScrollArea::vertical().show_rows(ui, ROW_HEIGHT, cars.len(), |ui, row_range| {
+                for i in row_range {
+                    let car = cars[i];
+                    let selected = state.selected_car.as_deref() == Some(car.id.as_str());
+                    let mut clicked = false;
+                    ui.horizontal(|ui| {
+                        let thumb_resp = if let Some(p) = car.preview() {
+                            ui.add(
+                                egui::Image::new(egui::ImageSource::Uri(file_uri(p).into()))
+                                    .fit_to_exact_size(egui::vec2(72.0, 72.0)),
+                            )
+                        } else {
+                            let (rect, r) = ui.allocate_exact_size(
+                                egui::vec2(72.0, 72.0),
+                                egui::Sense::click(),
+                            );
+                            ui.painter().rect_stroke(
+                                rect,
+                                4.0,
+                                egui::Stroke::new(1.0_f32, egui::Color32::DARK_GRAY),
+                                egui::StrokeKind::Outside,
+                            );
+                            r
+                        };
+                        if thumb_resp.clicked() {
+                            clicked = true;
+                        }
+                        let label_resp = ui.selectable_label(
+                            selected,
+                            format!("{}  —  {}", car.name, car.brand_name()),
+                        );
+                        if label_resp.clicked() {
+                            clicked = true;
+                        }
+                        ui.vertical(|ui| {
+                            ui.small(format!("id: {}  skins: {}", car.id, car.skins.len()));
+                        });
+                    });
+                    if clicked {
+                        if selected {
+                            state.selected_car = None;
+                        } else {
+                            state.selected_car = Some(car.id.clone());
+                        }
+                    }
+                }
+            });
+        });
+
+        cols[1].vertical(|ui| {
+            if let Some(id) = state.selected_car.clone() {
+                if let Some(car) = state.cars.iter().find(|c| c.id == id) {
+                    ui.heading(&car.name);
+                    ui.label(format!("Brand: {}", car.brand_name()));
+                    ui.label(format!("ID: {}", car.id));
+                    if let Some(c) = &car.class {
+                        ui.label(format!("Class: {c}"));
+                    }
+                    if let Some(y) = &car.year {
+                        ui.label(format!("Year: {y}"));
+                    }
+                    if let Some(country) = &car.country {
+                        ui.label(format!("Country: {country}"));
+                    }
+                    if let Some(author) = &car.author {
+                        ui.label(format!("Author: {author}"));
+                    }
+                    if let Some(desc) = &car.description {
+                        ui.separator();
+                        ui.label("Description:");
+                        ui.label(desc);
+                    }
+                    if !car.specs.is_empty() {
+                        ui.separator();
+                        ui.label("Specs:");
+                        for (k, v) in &car.specs {
+                            ui.label(format!("  {} : {}", content::spec_label(k), v));
+                        }
+                    }
+                    if let Some(b) = &car.badge {
+                        ui.separator();
+                        ui.label("Badge:");
                         ui.add(
-                            egui::Image::new(egui::ImageSource::Uri(file_uri(p).into()))
-                                .fit_to_exact_size(egui::vec2(72.0, 72.0)),
-                        );
-                    } else {
-                        let (rect, _) = ui.allocate_exact_size(
-                            egui::vec2(72.0, 72.0),
-                            egui::Sense::hover(),
-                        );
-                        ui.painter().rect_stroke(
-                            rect,
-                            4.0,
-                            egui::Stroke::new(1.0_f32, egui::Color32::DARK_GRAY),
-                            egui::StrokeKind::Outside,
+                            egui::Image::new(egui::ImageSource::Uri(file_uri(b).into()))
+                                .fit_to_exact_size(egui::vec2(64.0, 64.0)),
                         );
                     }
-                    ui.vertical(|ui| {
-                        ui.horizontal(|ui| {
-                            ui.label(format!("{}  —  {}", car.name, car.brand_name()));
-                            if let Some(b) = &car.badge {
-                                ui.add(
-                                    egui::Image::new(egui::ImageSource::Uri(file_uri(b).into()))
-                                        .fit_to_exact_size(egui::vec2(24.0, 24.0)),
-                                );
+                    if !car.skins.is_empty() {
+                        ui.separator();
+                        ui.label(format!("Skins ({}):", car.skins.len()));
+                        egui::ScrollArea::vertical().show(ui, |ui| {
+                            for skin in &car.skins {
+                                ui.horizontal(|ui| {
+                                    if let Some(p) = &skin.preview {
+                                        ui.add(
+                                            egui::Image::new(egui::ImageSource::Uri(file_uri(p).into()))
+                                                .fit_to_exact_size(egui::vec2(48.0, 48.0)),
+                                        );
+                                    }
+                                    ui.vertical(|ui| {
+                                        ui.label(&skin.name);
+                                        ui.small(format!("id: {}", skin.id));
+                                        if let Some(n) = &skin.number {
+                                            ui.small(format!("number: {n}"));
+                                        }
+                                    });
+                                });
                             }
                         });
-                        ui.small(format!("id: {}  skins: {}", car.id, car.skins.len()));
-                        if car.has_data_acd {
-                            ui.small("data.acd");
-                        }
-                        if car.has_data_dir {
-                            ui.small("data/");
-                        }
-                    });
-                });
-            });
-        }
+                    }
+                    if let Some(err) = &car.ui_error {
+                        ui.colored_label(egui::Color32::RED, format!("ui error: {err}"));
+                    }
+                } else {
+                    ui.label("Car not found.");
+                }
+            } else {
+                ui.label("Select a car from the list.");
+            }
+        });
     });
 }
