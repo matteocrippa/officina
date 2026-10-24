@@ -24,6 +24,8 @@ Electron, no .NET, no DirectX — just a small native binary.
 - **CLI** — `officina where`, `officina list cars|tracks`, `officina install <archive>`.
 - **Steam Deck / Bazzite ready** — runs inside the Steam runtime, handles
   `steam-run` on NixOS, SDL gamepad routing, `PROTON_DISABLE_HIDRAW`.
+- **Nicer UI** — monochrome icons throughout (navigation, weather conditions,
+  rescan/install actions) to reinforce state at a glance.
 
 ## Screenshots
 
@@ -42,6 +44,34 @@ Build dependencies (Debian/Ubuntu):
 sudo apt install build-essential pkg-config \
   libxkbcommon-dev libwayland-dev libx11-dev libfontconfig-dev libvulkan-dev
 ```
+
+## Install
+
+One-liner (downloads a prebuilt binary when available, otherwise builds from
+source — requires Rust + cargo):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/matteocrippa/officina/main/install.sh | sh
+```
+
+Or with wget:
+
+```sh
+wget -qO- https://raw.githubusercontent.com/matteocrippa/officina/main/install.sh | sh
+```
+
+Installs to `~/.local/bin/officina` (override with `PREFIX=/usr/local`). Make sure
+`~/.local/bin` is on your `PATH`.
+
+## Getting started
+
+1. Launch `officina` (GUI) or run `officina where` to verify auto-detected paths.
+2. If Assetto Corsa is not auto-detected, open **Settings** and set the AC root
+   (the folder containing `acs.exe` / `content/`).
+3. On first scan, cars/tracks/weather are loaded automatically. Use **Rescan**
+   after installing mods.
+4. Quick Drive: pick car/skin/track, configure conditions, click **Go!** to
+   write `race.ini` and launch through Proton.
 
 ## Build & run
 

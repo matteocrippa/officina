@@ -1,0 +1,26 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build release
+        run: cargo build --release -p officina-app
+      - name: Package
+        run: |
+          mkdir -p dist
+          cp target/release/officina dist/
+          tar -czf officina-linux-x86_64.tar.gz -C dist officina
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: officina-linux-x86_64.tar.gz
+          generate_release_notes: true
