@@ -2,6 +2,7 @@ pub mod cars;
 pub mod career;
 pub mod game_settings;
 pub mod install;
+pub mod patches;
 pub mod quick_drive;
 pub mod settings;
 pub mod tracks;

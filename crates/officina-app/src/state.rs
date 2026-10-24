@@ -27,6 +27,7 @@ pub enum Nav {
     Cars,
     Tracks,
     Weather,
+    Patches,
     Career,
     GameSettings,
     QuickDrive,
