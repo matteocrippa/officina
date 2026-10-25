@@ -388,3 +388,27 @@ pub fn brands(cars: &[Car]) -> BTreeMap<String, usize> {
     }
     groups.into_values().collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn natural_cmp_orders_numbers() {
+        assert_eq!(natural_cmp("car2", "car10"), std::cmp::Ordering::Less);
+        assert_eq!(natural_cmp("car10", "car2"), std::cmp::Ordering::Greater);
+        assert_eq!(natural_cmp("car2", "car2"), std::cmp::Ordering::Equal);
+    }
+
+    #[test]
+    fn plain_text_strips_tags() {
+        assert_eq!(plain_text("hello<br/>world"), "hello\nworld");
+        assert_eq!(plain_text("<b>bold</b> text"), "bold text");
+        assert_eq!(plain_text("  spaced  "), "spaced");
+    }
+
+    #[test]
+    fn pretty_weather_name_works() {
+        assert_eq!(pretty_weather_name("3_clear"), "Clear");
+    }
+}

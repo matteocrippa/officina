@@ -251,3 +251,34 @@ pub fn apply(file: &mut IniFile, q: &QuickDrive) {
     dynamic.set("LAP_GAIN", 1);
     dynamic.set("SESSION_TRANSFER", 100);
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sun_angle_at_noon() {
+        assert!((sun_angle(46800.0) - 0.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn road_temperature_positive() {
+        let t = road_temperature(13.0 * 3600.0, 26.0, 1.0);
+        assert!(t > 0.0);
+    }
+
+    #[test]
+    fn pick_opponents_count() {
+        let skins = vec!["s1".to_string(), "s2".to_string()];
+        let opps = pick_opponents("car", "s1", &skins, 3);
+        assert_eq!(opps.len(), 3);
+    }
+
+    #[test]
+    fn quickdrive_serde_roundtrip() {
+        let q = QuickDrive::default();
+        let s = serde_json::to_string(&q).unwrap();
+        let q2: QuickDrive = serde_json::from_str(&s).unwrap();
+        assert_eq!(q, q2);
+    }
+}

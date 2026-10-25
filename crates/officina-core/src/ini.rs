@@ -157,3 +157,57 @@ impl IniFile {
         fs::write(path, self.to_string()).with_context(|| format!("writing {}", path.display()))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_basic() {
+        let text = "[SECTION]\nKEY=value\nFOO=bar\n";
+        let ini = IniFile::parse(text);
+        assert_eq!(ini.get("SECTION", "KEY"), Some("value"));
+        assert_eq!(ini.get("SECTION", "FOO"), Some("bar"));
+        assert_eq!(ini.get("MISSING", "KEY"), None);
+    }
+
+    #[test]
+    fn parse_strips_comments() {
+        let text = "[S]\nKEY=value ; comment\nOTHER=2 // note\n";
+        let ini = IniFile::parse(text);
+        assert_eq!(ini.get("S", "KEY"), Some("value"));
+        assert_eq!(ini.get("S", "OTHER"), Some("2"));
+    }
+
+    #[test]
+    fn set_updates_or_appends() {
+        let mut ini = IniFile::default();
+        ini.section_mut("S").set("K", "1");
+        ini.section_mut("S").set("K", "2");
+        assert_eq!(ini.get("S", "K"), Some("2"));
+        let entries: Vec<_> = ini.section("S").unwrap().entries().collect();
+        assert_eq!(entries.len(), 1);
+    }
+
+    #[test]
+    fn roundtrip_to_string() {
+        let text = "[A]\nX=1\n\n[B]\nY=2\n";
+        let ini = IniFile::parse(text);
+        let out = ini.to_string();
+        let ini2 = IniFile::parse(&out);
+        assert_eq!(ini2.get("A", "X"), Some("1"));
+        assert_eq!(ini2.get("B", "Y"), Some("2"));
+    }
+
+    #[test]
+    fn remove_numbered() {
+        let mut ini = IniFile::default();
+        ini.section_mut("CAR_0");
+        ini.section_mut("CAR_1");
+        ini.section_mut("CAR_2");
+        ini.remove_numbered("CAR", 1);
+        assert!(ini.section("CAR_0").is_some());
+        assert!(ini.section("CAR_1").is_none());
+        assert!(ini.section("CAR_2").is_none());
+    }
+}

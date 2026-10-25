@@ -24,7 +24,7 @@ enum Commands {
     Where,
     /// List installed content.
     List {
-        /// 'cars' or 'tracks'.
+        /// 'cars', 'tracks', 'weather', or 'events'.
         kind: String,
     },
     /// Install a mod archive.

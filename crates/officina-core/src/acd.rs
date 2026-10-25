@@ -238,3 +238,42 @@ pub fn pack(data_dir: &Path, acd_path: &Path) -> Result<usize> {
     write(acd_path, &entries)?;
     Ok(entries.len())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn roundtrip_bytes() {
+        let entries = vec![
+            AcdEntry { name: "a.ini".into(), data: b"hello".to_vec() },
+            AcdEntry { name: "b.txt".into(), data: vec![0, 1, 2, 255] },
+        ];
+        let ks = "mycar";
+        let bytes = write_bytes(&entries, ks).unwrap();
+        let read = read_bytes(&bytes, ks).unwrap();
+        assert_eq!(read.len(), 2);
+        assert_eq!(read[0].name, "a.ini");
+        assert_eq!(read[0].data, b"hello");
+        assert_eq!(read[1].name, "b.txt");
+        assert_eq!(read[1].data, vec![0, 1, 2, 255]);
+    }
+
+    #[test]
+    fn key_source_for_data_prefix() {
+        let p = std::path::Path::new("/x/cars/mycar/data.acd");
+        assert_eq!(key_source_for(p), "mycar");
+    }
+
+    #[test]
+    fn key_source_for_other_name() {
+        let p = std::path::Path::new("/x/foo.acd");
+        assert_eq!(key_source_for(p), "foo.acd");
+    }
+
+    #[test]
+    fn derive_key_nonempty() {
+        let k = derive_key("abc");
+        assert!(!k.is_empty());
+    }
+}
