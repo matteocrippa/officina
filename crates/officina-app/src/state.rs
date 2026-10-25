@@ -16,7 +16,10 @@ pub enum AppMsg {
     InstallDone {
         written: usize,
     },
-    CareerLoaded(officina_core::events::Catalog, officina_core::events::Progress),
+    CareerLoaded(
+        officina_core::events::Catalog,
+        officina_core::events::Progress,
+    ),
     GameConfigLoaded(officina_core::game_cfg::GameConfig),
     PatchesDone(String),
     Error(String),
@@ -35,6 +38,7 @@ pub enum Nav {
     QuickDrive,
     Install,
     Settings,
+    About,
 }
 
 pub struct AppState {
@@ -191,14 +195,12 @@ impl AppState {
         self.game_settings_loading = true;
         self.game_settings_status = "Loading...".into();
         let tx = self.tx.clone();
-        std::thread::spawn(move || {
-            match officina_core::game_cfg::load(&ac_root) {
-                Ok(gc) => {
-                    let _ = tx.send(AppMsg::GameConfigLoaded(gc));
-                }
-                Err(e) => {
-                    let _ = tx.send(AppMsg::Error(format!("game config load failed: {e:#}")));
-                }
+        std::thread::spawn(move || match officina_core::game_cfg::load(&ac_root) {
+            Ok(gc) => {
+                let _ = tx.send(AppMsg::GameConfigLoaded(gc));
+            }
+            Err(e) => {
+                let _ = tx.send(AppMsg::Error(format!("game config load failed: {e:#}")));
             }
         });
     }
@@ -232,17 +234,19 @@ impl AppState {
         self.status = "Scanning...".into();
         let tx = self.tx.clone();
         let ac_root = self.settings.ac_root();
-        std::thread::spawn(move || {
-            match ac_root {
-                Some(root) => {
-                    let cars = content::scan_cars(&root);
-                    let tracks = content::scan_tracks(&root);
-                    let weather = content::scan_weather(&root);
-                    let _ = tx.send(AppMsg::ScanDone { cars, tracks, weather });
-                }
-                None => {
-                    let _ = tx.send(AppMsg::Error("Assetto Corsa not found".into()));
-                }
+        std::thread::spawn(move || match ac_root {
+            Some(root) => {
+                let cars = content::scan_cars(&root);
+                let tracks = content::scan_tracks(&root);
+                let weather = content::scan_weather(&root);
+                let _ = tx.send(AppMsg::ScanDone {
+                    cars,
+                    tracks,
+                    weather,
+                });
+            }
+            None => {
+                let _ = tx.send(AppMsg::Error("Assetto Corsa not found".into()));
             }
         });
     }
@@ -255,19 +259,17 @@ impl AppState {
         self.install_status = "Planning...".into();
         let tx = self.tx.clone();
         let ac_root = self.settings.ac_root();
-        std::thread::spawn(move || {
-            match ac_root {
-                Some(root) => match install::plan(&archive, &root) {
-                    Ok(items) => {
-                        let _ = tx.send(AppMsg::InstallPlan { archive, items });
-                    }
-                    Err(e) => {
-                        let _ = tx.send(AppMsg::Error(format!("plan failed: {e:#}")));
-                    }
-                },
-                None => {
-                    let _ = tx.send(AppMsg::Error("Assetto Corsa not found".into()));
+        std::thread::spawn(move || match ac_root {
+            Some(root) => match install::plan(&archive, &root) {
+                Ok(items) => {
+                    let _ = tx.send(AppMsg::InstallPlan { archive, items });
                 }
+                Err(e) => {
+                    let _ = tx.send(AppMsg::Error(format!("plan failed: {e:#}")));
+                }
+            },
+            None => {
+                let _ = tx.send(AppMsg::Error("Assetto Corsa not found".into()));
             }
         });
     }
@@ -287,14 +289,12 @@ impl AppState {
         self.install_busy = true;
         self.install_status = "Installing...".into();
         let tx = self.tx.clone();
-        std::thread::spawn(move || {
-            match install::install(&archive, &items) {
-                Ok(written) => {
-                    let _ = tx.send(AppMsg::InstallDone { written });
-                }
-                Err(e) => {
-                    let _ = tx.send(AppMsg::Error(format!("install failed: {e:#}")));
-                }
+        std::thread::spawn(move || match install::install(&archive, &items) {
+            Ok(written) => {
+                let _ = tx.send(AppMsg::InstallDone { written });
+            }
+            Err(e) => {
+                let _ = tx.send(AppMsg::Error(format!("install failed: {e:#}")));
             }
         });
     }

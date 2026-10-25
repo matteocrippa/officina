@@ -16,7 +16,9 @@ pub fn content_dir(ac_root: &Path, kind: &str) -> PathBuf {
 
 pub fn list_disabled(ac_root: &Path, kind: &str) -> Vec<String> {
     let dir = disabled_dir(ac_root, kind);
-    let Ok(entries) = fs::read_dir(&dir) else { return Vec::new() };
+    let Ok(entries) = fs::read_dir(&dir) else {
+        return Vec::new();
+    };
     let mut v: Vec<String> = entries
         .filter_map(|e| e.ok())
         .filter(|e| e.path().is_dir())

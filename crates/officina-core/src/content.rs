@@ -54,7 +54,12 @@ impl Car {
     }
 
     pub fn search_text(&self) -> String {
-        let mut s = format!("{} {} {}", self.id, self.name, self.brand.as_deref().unwrap_or(""));
+        let mut s = format!(
+            "{} {} {}",
+            self.id,
+            self.name,
+            self.brand.as_deref().unwrap_or("")
+        );
         if let Some(c) = &self.class {
             s.push(' ');
             s.push_str(c);
@@ -173,18 +178,28 @@ fn subdirs(dir: &Path) -> Vec<PathBuf> {
 }
 
 fn dir_name(p: &Path) -> String {
-    p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
+    p.file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default()
 }
 
 fn tags(v: &Value) -> Vec<String> {
     v.get("tags")
         .and_then(|t| t.as_array())
-        .map(|a| a.iter().filter_map(|x| x.as_str()).map(|s| s.trim().to_owned()).collect())
+        .map(|a| {
+            a.iter()
+                .filter_map(|x| x.as_str())
+                .map(|s| s.trim().to_owned())
+                .collect()
+        })
         .unwrap_or_default()
 }
 
 pub fn plain_text(s: &str) -> String {
-    let s = s.replace("<br/>", "\n").replace("<br>", "\n").replace("<br />", "\n");
+    let s = s
+        .replace("<br/>", "\n")
+        .replace("<br>", "\n")
+        .replace("<br />", "\n");
     let mut out = String::with_capacity(s.len());
     let mut in_tag = false;
     for c in s.chars() {
@@ -195,7 +210,12 @@ pub fn plain_text(s: &str) -> String {
             _ => {}
         }
     }
-    out.lines().map(str::trim).collect::<Vec<_>>().join("\n").trim().to_owned()
+    out.lines()
+        .map(str::trim)
+        .collect::<Vec<_>>()
+        .join("\n")
+        .trim()
+        .to_owned()
 }
 
 fn load_skin(dir: PathBuf) -> Skin {
@@ -206,8 +226,15 @@ fn load_skin(dir: PathBuf) -> Skin {
         .and_then(|v| json::text(v, "skinname"))
         .unwrap_or_else(|| id.replace('_', " "));
     Skin {
-        number: ui.as_ref().and_then(|v| json::text(v, "number")).filter(|n| n != "0"),
-        priority: ui.as_ref().and_then(|v| v.get("priority")).and_then(|p| p.as_i64()).unwrap_or(0),
+        number: ui
+            .as_ref()
+            .and_then(|v| json::text(v, "number"))
+            .filter(|n| n != "0"),
+        priority: ui
+            .as_ref()
+            .and_then(|v| v.get("priority"))
+            .and_then(|p| p.as_i64())
+            .unwrap_or(0),
         preview: existing(dir.join("preview.jpg")).or_else(|| existing(dir.join("preview.png"))),
         livery: existing(dir.join("livery.png")),
         name,
@@ -232,7 +259,9 @@ pub fn load_car(dir: &Path) -> Car {
         .map(|o| {
             o.iter()
                 .filter_map(|(k, v)| match v {
-                    Value::String(s) if !s.trim().is_empty() && s.trim() != "--" => Some((k.clone(), s.trim().to_owned())),
+                    Value::String(s) if !s.trim().is_empty() && s.trim() != "--" => {
+                        Some((k.clone(), s.trim().to_owned()))
+                    }
                     Value::Number(n) => Some((k.clone(), n.to_string())),
                     _ => None,
                 })
@@ -240,8 +269,15 @@ pub fn load_car(dir: &Path) -> Car {
         })
         .unwrap_or_default();
 
-    let mut skins: Vec<Skin> = subdirs(&dir.join("skins")).into_iter().map(load_skin).collect();
-    skins.sort_by(|a, b| b.priority.cmp(&a.priority).then_with(|| a.id.to_lowercase().cmp(&b.id.to_lowercase())));
+    let mut skins: Vec<Skin> = subdirs(&dir.join("skins"))
+        .into_iter()
+        .map(load_skin)
+        .collect();
+    skins.sort_by(|a, b| {
+        b.priority
+            .cmp(&a.priority)
+            .then_with(|| a.id.to_lowercase().cmp(&b.id.to_lowercase()))
+    });
 
     Car {
         name: get("name").unwrap_or_else(|| id.clone()),
@@ -313,7 +349,11 @@ pub fn load_track(dir: &Path) -> Track {
             layouts.push(l);
         }
     }
-    Track { id, dir: dir.to_path_buf(), layouts }
+    Track {
+        id,
+        dir: dir.to_path_buf(),
+        layouts,
+    }
 }
 
 pub fn scan_tracks(ac_root: &Path) -> Vec<Track> {
@@ -328,7 +368,10 @@ pub fn track_entries(tracks: &[Track]) -> Vec<TrackEntry> {
     let mut v: Vec<TrackEntry> = tracks
         .iter()
         .flat_map(|t| {
-            t.layouts.iter().map(|l| TrackEntry { track_id: t.id.clone(), layout: l.clone() })
+            t.layouts.iter().map(|l| TrackEntry {
+                track_id: t.id.clone(),
+                layout: l.clone(),
+            })
         })
         .collect();
     v.sort_by(|a, b| natural_cmp(&a.layout.name, &b.layout.name));
@@ -358,7 +401,9 @@ fn pretty_weather_name(id: &str) -> String {
         .filter(|w| !w.is_empty())
         .map(|w| {
             let mut c = w.chars();
-            c.next().map(|f| f.to_uppercase().collect::<String>() + c.as_str()).unwrap_or_default()
+            c.next()
+                .map(|f| f.to_uppercase().collect::<String>() + c.as_str())
+                .unwrap_or_default()
         })
         .collect::<Vec<_>>()
         .join(" ")

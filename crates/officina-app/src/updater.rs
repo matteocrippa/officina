@@ -16,7 +16,10 @@ pub fn check_latest(repo: &str) -> Result<String, String> {
         .output()
         .map_err(|e| format!("curl failed: {e}"))?;
     if !out.status.success() {
-        return Err(format!("curl failed: {}", String::from_utf8_lossy(&out.stderr)));
+        return Err(format!(
+            "curl failed: {}",
+            String::from_utf8_lossy(&out.stderr)
+        ));
     }
     let v: serde_json::Value =
         serde_json::from_slice(&out.stdout).map_err(|e| format!("parse failed: {e}"))?;
@@ -64,7 +67,12 @@ pub fn download_and_install(repo: &str) -> Result<String, String> {
 
     // extract
     let status = Command::new("tar")
-        .args(["-xzf", archive.to_str().unwrap(), "-C", tmp.to_str().unwrap()])
+        .args([
+            "-xzf",
+            archive.to_str().unwrap(),
+            "-C",
+            tmp.to_str().unwrap(),
+        ])
         .status()
         .map_err(|e| format!("tar failed: {e}"))?;
     if !status.success() {
@@ -78,7 +86,10 @@ pub fn download_and_install(repo: &str) -> Result<String, String> {
     let _ = fs::copy(&current, &backup);
     fs::copy(&bin, &current).map_err(|e| format!("replace failed: {e}"))?;
 
-    Ok(format!("Updated to {tag}. Restart the app. (backup: {})", backup.display()))
+    Ok(format!(
+        "Updated to {tag}. Restart the app. (backup: {})",
+        backup.display()
+    ))
 }
 
 fn find_binary(dir: &PathBuf) -> Option<PathBuf> {
@@ -88,10 +99,10 @@ fn find_binary(dir: &PathBuf) -> Option<PathBuf> {
             if p.is_file() && p.file_name().map(|n| n == "officina").unwrap_or(false) {
                 return Some(p);
             }
-            if p.is_dir() {
-                if let Some(b) = find_binary(&p) {
-                    return Some(b);
-                }
+            if p.is_dir()
+                && let Some(b) = find_binary(&p)
+            {
+                return Some(b);
             }
         }
     }

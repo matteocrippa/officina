@@ -139,15 +139,26 @@ struct Cursor<'a> {
 impl<'a> Cursor<'a> {
     fn i32(&mut self) -> Result<i32> {
         let end = self.pos + 4;
-        ensure!(end <= self.bytes.len(), "unexpected end of data.acd at {}", self.pos);
+        ensure!(
+            end <= self.bytes.len(),
+            "unexpected end of data.acd at {}",
+            self.pos
+        );
         let v = i32::from_le_bytes(self.bytes[self.pos..end].try_into().unwrap());
         self.pos = end;
         Ok(v)
     }
 
     fn take(&mut self, n: usize) -> Result<&'a [u8]> {
-        let end = self.pos.checked_add(n).context("data.acd length overflow")?;
-        ensure!(end <= self.bytes.len(), "unexpected end of data.acd at {}", self.pos);
+        let end = self
+            .pos
+            .checked_add(n)
+            .context("data.acd length overflow")?;
+        ensure!(
+            end <= self.bytes.len(),
+            "unexpected end of data.acd at {}",
+            self.pos
+        );
         let s = &self.bytes[self.pos..end];
         self.pos = end;
         Ok(s)
@@ -169,7 +180,10 @@ pub fn read_bytes(bytes: &[u8], key_source: &str) -> Result<Vec<AcdEntry>> {
         ensure!(name_len >= 0, "negative entry name length in data.acd");
         let name = String::from_utf8_lossy(c.take(name_len as usize)?).into_owned();
         let data_len = c.i32()?;
-        ensure!(data_len >= 0, "negative entry length in data.acd for {name}");
+        ensure!(
+            data_len >= 0,
+            "negative entry length in data.acd for {name}"
+        );
         let raw = c.take(data_len as usize * 4)?;
         let mut data: Vec<u8> = raw.iter().step_by(4).copied().collect();
         decrypt(&mut data, &key);
@@ -207,7 +221,11 @@ pub fn unpack(acd_path: &Path, out_dir: &Path) -> Result<usize> {
     fs::create_dir_all(out_dir)?;
     for e in &entries {
         let name = Path::new(&e.name);
-        if name.is_absolute() || name.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+        if name.is_absolute()
+            || name
+                .components()
+                .any(|c| matches!(c, std::path::Component::ParentDir))
+        {
             bail!("refusing unsafe entry name {:?}", e.name);
         }
         let target = out_dir.join(name);
@@ -246,8 +264,14 @@ mod tests {
     #[test]
     fn roundtrip_bytes() {
         let entries = vec![
-            AcdEntry { name: "a.ini".into(), data: b"hello".to_vec() },
-            AcdEntry { name: "b.txt".into(), data: vec![0, 1, 2, 255] },
+            AcdEntry {
+                name: "a.ini".into(),
+                data: b"hello".to_vec(),
+            },
+            AcdEntry {
+                name: "b.txt".into(),
+                data: vec![0, 1, 2, 255],
+            },
         ];
         let ks = "mycar";
         let bytes = write_bytes(&entries, ks).unwrap();

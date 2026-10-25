@@ -18,7 +18,9 @@ pub fn steam_roots() -> Vec<PathBuf> {
                 roots.push(PathBuf::from(p.replace('/', "\\")));
             }
         }
-        if let Ok(k) = RegKey::predef(HKEY_LOCAL_MACHINE).open_subkey(r"SOFTWARE\WOW6432Node\Valve\Steam") {
+        if let Ok(k) =
+            RegKey::predef(HKEY_LOCAL_MACHINE).open_subkey(r"SOFTWARE\WOW6432Node\Valve\Steam")
+        {
             if let Ok(p) = k.get_value::<String, _>("InstallPath") {
                 roots.push(PathBuf::from(p));
             }
@@ -59,7 +61,11 @@ pub fn steam_libraries() -> Vec<PathBuf> {
     let mut libs: Vec<PathBuf> = Vec::new();
     let mut push = |p: PathBuf| {
         let canon = fs::canonicalize(&p).unwrap_or_else(|_| p.clone());
-        if p.join("steamapps").is_dir() && !libs.iter().any(|l| fs::canonicalize(l).unwrap_or_else(|_| l.clone()) == canon) {
+        if p.join("steamapps").is_dir()
+            && !libs
+                .iter()
+                .any(|l| fs::canonicalize(l).unwrap_or_else(|_| l.clone()) == canon)
+        {
             libs.push(p);
         }
     };
@@ -169,7 +175,11 @@ pub fn compat_data_dir(ac_root: &Path) -> Option<PathBuf> {
     let id = AC_APP_ID.to_string();
     let near = steamapps_of(ac_root).map(|s| s.join("compatdata").join(&id));
     near.into_iter()
-        .chain(steam_libraries().into_iter().map(|l| l.join("steamapps").join("compatdata").join(&id)))
+        .chain(
+            steam_libraries()
+                .into_iter()
+                .map(|l| l.join("steamapps").join("compatdata").join(&id)),
+        )
         .find(|p| p.join("pfx").is_dir())
 }
 
@@ -178,10 +188,7 @@ pub fn documents_ac_dir(ac_root: &Path) -> Option<PathBuf> {
         let _ = ac_root;
         Some(dirs::document_dir()?.join("Assetto Corsa"))
     } else {
-        Some(
-            compat_data_dir(ac_root)?
-                .join("pfx/drive_c/users/steamuser/Documents/Assetto Corsa"),
-        )
+        Some(compat_data_dir(ac_root)?.join("pfx/drive_c/users/steamuser/Documents/Assetto Corsa"))
     }
 }
 

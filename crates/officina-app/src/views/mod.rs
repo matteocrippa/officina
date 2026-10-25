@@ -1,5 +1,6 @@
-pub mod cars;
+pub mod about;
 pub mod career;
+pub mod cars;
 pub mod check_mods;
 pub mod game_settings;
 pub mod install;

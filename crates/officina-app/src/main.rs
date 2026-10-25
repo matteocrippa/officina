@@ -12,7 +12,11 @@ mod updater;
 mod views;
 
 #[derive(Parser)]
-#[command(name = "officina", version, about = "Officina — mod manager & launcher for Assetto Corsa (Linux)")]
+#[command(
+    name = "officina",
+    version,
+    about = "Officina — mod manager & launcher for Assetto Corsa (Linux)"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
@@ -28,9 +32,7 @@ enum Commands {
         kind: String,
     },
     /// Install a mod archive.
-    Install {
-        archive: PathBuf,
-    },
+    Install { archive: PathBuf },
     /// Validate installed content (missing files, AI lines, liveries).
     Check,
     /// Pack/unpack data.acd files.
@@ -43,20 +45,16 @@ enum Commands {
 #[derive(Subcommand)]
 enum AcdAction {
     /// Decrypt data.acd into a folder (default: <car>/data).
-    Unpack {
-        file: PathBuf,
-        out: Option<PathBuf>,
-    },
+    Unpack { file: PathBuf, out: Option<PathBuf> },
     /// Encrypt a data folder into data.acd (default: <car>/data.acd).
-    Pack {
-        dir: PathBuf,
-        out: Option<PathBuf>,
-    },
+    Pack { dir: PathBuf, out: Option<PathBuf> },
 }
 
 fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")))
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+        )
         .init();
 
     let cli = Cli::parse();

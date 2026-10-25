@@ -1,5 +1,5 @@
-use officina_core::content;
 use egui::Ui;
+use officina_core::content;
 
 use crate::icons;
 use crate::state::AppState;
@@ -45,10 +45,8 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
                                     .fit_to_exact_size(egui::vec2(72.0, 72.0)),
                             )
                         } else {
-                            let (rect, r) = ui.allocate_exact_size(
-                                egui::vec2(72.0, 72.0),
-                                egui::Sense::click(),
-                            );
+                            let (rect, r) = ui
+                                .allocate_exact_size(egui::vec2(72.0, 72.0), egui::Sense::click());
                             ui.painter().rect_stroke(
                                 rect,
                                 4.0,
@@ -128,8 +126,10 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
                                 ui.horizontal(|ui| {
                                     if let Some(p) = &skin.preview {
                                         ui.add(
-                                            egui::Image::new(egui::ImageSource::Uri(file_uri(p).into()))
-                                                .fit_to_exact_size(egui::vec2(48.0, 48.0)),
+                                            egui::Image::new(egui::ImageSource::Uri(
+                                                file_uri(p).into(),
+                                            ))
+                                            .fit_to_exact_size(egui::vec2(48.0, 48.0)),
                                         );
                                     }
                                     ui.vertical(|ui| {
@@ -163,7 +163,10 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
     });
     // Disabled cars section
     let ac_root = state.settings.ac_root();
-    let disabled = ac_root.as_ref().map(|r| officina_core::mods::list_disabled(r, "cars")).unwrap_or_default();
+    let disabled = ac_root
+        .as_ref()
+        .map(|r| officina_core::mods::list_disabled(r, "cars"))
+        .unwrap_or_default();
     if !disabled.is_empty() {
         ui.separator();
         ui.label(format!("Disabled cars ({}):", disabled.len()));
@@ -187,21 +190,31 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
             Err(e) => state.status = format!("Uninstall failed: {e}"),
         }
     }
-    if let Some(dir) = disable_target {
-        if let Some(root) = state.settings.ac_root() {
-            let id = dir.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-            match officina_core::mods::disable(&root, "cars", &id) {
-                Ok(_) => { state.selected_car = None; state.status = "Disabled.".into(); state.trigger_scan(); }
-                Err(e) => state.status = format!("Disable failed: {e}"),
+    if let Some(dir) = disable_target
+        && let Some(root) = state.settings.ac_root()
+    {
+        let id = dir
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        match officina_core::mods::disable(&root, "cars", &id) {
+            Ok(_) => {
+                state.selected_car = None;
+                state.status = "Disabled.".into();
+                state.trigger_scan();
             }
+            Err(e) => state.status = format!("Disable failed: {e}"),
         }
     }
-    if let Some(id) = enable_target {
-        if let Some(root) = state.settings.ac_root() {
-            match officina_core::mods::enable(&root, "cars", &id) {
-                Ok(_) => { state.status = "Enabled.".into(); state.trigger_scan(); }
-                Err(e) => state.status = format!("Enable failed: {e}"),
+    if let Some(id) = enable_target
+        && let Some(root) = state.settings.ac_root()
+    {
+        match officina_core::mods::enable(&root, "cars", &id) {
+            Ok(_) => {
+                state.status = "Enabled.".into();
+                state.trigger_scan();
             }
+            Err(e) => state.status = format!("Enable failed: {e}"),
         }
     }
 }

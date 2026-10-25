@@ -10,7 +10,8 @@ use anyhow::{Context, Result, bail};
 
 use crate::install;
 
-const CSP_CONFIG_URL: &str = "https://github.com/ac-custom-shaders-patch/acc-extension-config/archive/refs/heads/master.zip";
+const CSP_CONFIG_URL: &str =
+    "https://github.com/ac-custom-shaders-patch/acc-extension-config/archive/refs/heads/master.zip";
 
 /// Subdirectories of the archive (under `acc-extension-config-master/`) that
 /// are copied into `<ac_root>/extension/`.
@@ -70,7 +71,10 @@ pub fn update_csp_configs(ac_root: &Path) -> Result<usize> {
 fn copy_dir(src: &Path, dst: &Path) -> Result<usize> {
     fs::create_dir_all(dst)?;
     let mut written = 0usize;
-    for entry in walkdir::WalkDir::new(src).into_iter().filter_map(|e| e.ok()) {
+    for entry in walkdir::WalkDir::new(src)
+        .into_iter()
+        .filter_map(|e| e.ok())
+    {
         let path = entry.path();
         let rel = match path.strip_prefix(src) {
             Ok(r) => r,

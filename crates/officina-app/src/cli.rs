@@ -1,23 +1,56 @@
 use std::path::PathBuf;
 
-use officina_core::{content, install, launch, paths, settings::Settings, validate};
 use anyhow::{Context, Result};
+use officina_core::{content, install, launch, paths, settings::Settings, validate};
 
 pub fn where_cmd() -> Result<()> {
     let s = Settings::load();
     let ac_root = s.ac_root();
-    println!("AC root:        {}", ac_root.as_ref().map(|p| p.display().to_string()).unwrap_or_else(|| "<not found>".into()));
+    println!(
+        "AC root:        {}",
+        ac_root
+            .as_ref()
+            .map(|p| p.display().to_string())
+            .unwrap_or_else(|| "<not found>".into())
+    );
     if let Some(r) = &ac_root {
-        println!("compatdata:     {}", paths::compat_data_dir(r).map(|p| p.display().to_string()).unwrap_or_else(|| "<none>".into()));
-        println!("documents:      {}", paths::documents_ac_dir(r).map(|p| p.display().to_string()).unwrap_or_else(|| "<none>".into()));
-        println!("race.ini:       {}", paths::race_ini_path(r).map(|p| p.display().to_string()).unwrap_or_else(|| "<none>".into()));
+        println!(
+            "compatdata:     {}",
+            paths::compat_data_dir(r)
+                .map(|p| p.display().to_string())
+                .unwrap_or_else(|| "<none>".into())
+        );
+        println!(
+            "documents:      {}",
+            paths::documents_ac_dir(r)
+                .map(|p| p.display().to_string())
+                .unwrap_or_else(|| "<none>".into())
+        );
+        println!(
+            "race.ini:       {}",
+            paths::race_ini_path(r)
+                .map(|p| p.display().to_string())
+                .unwrap_or_else(|| "<none>".into())
+        );
     }
     let proton = s
         .proton
         .clone()
         .or_else(|| ac_root.as_ref().and_then(|r| launch::find_proton(r)));
-    println!("Proton:         {}", proton.map(|p| p.display().to_string()).unwrap_or_else(|| "<not found>".into()));
-    println!("Steam roots:    {}", paths::steam_roots().iter().map(|p| p.display().to_string()).collect::<Vec<_>>().join(", "));
+    println!(
+        "Proton:         {}",
+        proton
+            .map(|p| p.display().to_string())
+            .unwrap_or_else(|| "<not found>".into())
+    );
+    println!(
+        "Steam roots:    {}",
+        paths::steam_roots()
+            .iter()
+            .map(|p| p.display().to_string())
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
     Ok(())
 }
 
@@ -36,7 +69,15 @@ pub fn list_cmd(kind: &str) -> Result<()> {
             let tracks = content::scan_tracks(&ac_root);
             println!("{} tracks:", tracks.len());
             for t in tracks {
-                println!("  {}  ({})", t.id, t.layouts.iter().map(|l| l.name.as_str()).collect::<Vec<_>>().join(", "));
+                println!(
+                    "  {}  ({})",
+                    t.id,
+                    t.layouts
+                        .iter()
+                        .map(|l| l.name.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                );
             }
         }
         "weather" => {
@@ -49,7 +90,11 @@ pub fn list_cmd(kind: &str) -> Result<()> {
         "events" => {
             let catalog = officina_core::events::scan(&ac_root);
             let progress = officina_core::events::Progress::load(&ac_root).unwrap_or_default();
-            println!("{} series / {} special events", catalog.series.len(), catalog.special.len());
+            println!(
+                "{} series / {} special events",
+                catalog.series.len(),
+                catalog.special.len()
+            );
             for s in &catalog.series {
                 println!(
                     "series {}  —  {}  [{}]",
@@ -72,7 +117,9 @@ pub fn list_cmd(kind: &str) -> Result<()> {
                 eprintln!("error: {err}");
             }
         }
-        other => anyhow::bail!("unknown kind: {other} (expected 'cars', 'tracks', 'weather', or 'events')"),
+        other => anyhow::bail!(
+            "unknown kind: {other} (expected 'cars', 'tracks', 'weather', or 'events')"
+        ),
     }
     Ok(())
 }
@@ -83,7 +130,13 @@ pub fn install_cmd(archive: PathBuf) -> Result<()> {
     let items = install::plan(&archive, &ac_root).context("planning install")?;
     println!("Planned {} item(s):", items.len());
     for it in &items {
-        println!("  {:?} {} -> {}  (exists: {})", it.kind, it.id, it.target.display(), it.exists);
+        println!(
+            "  {:?} {} -> {}  (exists: {})",
+            it.kind,
+            it.id,
+            it.target.display(),
+            it.exists
+        );
     }
     let written = install::install(&archive, &items).context("installing")?;
     println!("Installed {} file(s).", written);

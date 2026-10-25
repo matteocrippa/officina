@@ -16,9 +16,16 @@ pub enum SessionType {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 pub enum Mode {
-    Practice { minutes: u32 },
+    Practice {
+        minutes: u32,
+    },
     Hotlap,
-    Race { laps: u32, opponents: u32, ai_level: u32, starting_position: u32 },
+    Race {
+        laps: u32,
+        opponents: u32,
+        ai_level: u32,
+        starting_position: u32,
+    },
 }
 
 impl Default for Mode {
@@ -37,7 +44,12 @@ pub struct Conditions {
 
 impl Default for Conditions {
     fn default() -> Self {
-        Self { time_seconds: 13 * 3600, ambient_c: 26.0, weather_id: "3_clear".into(), time_multiplier: 1.0 }
+        Self {
+            time_seconds: 13 * 3600,
+            ambient_c: 26.0,
+            weather_id: "3_clear".into(),
+            time_multiplier: 1.0,
+        }
     }
 }
 
@@ -54,11 +66,19 @@ pub fn road_temperature(seconds: f64, ambient: f64, weather_coefficient: f64) ->
         let a = road_temperature(min, ambient, weather_coefficient);
         let b = road_temperature(max, ambient, weather_coefficient);
         let span = (max - 86400.0) - min;
-        let s = if seconds > max { seconds - 86400.0 } else { seconds };
+        let s = if seconds > max {
+            seconds - 86400.0
+        } else {
+            seconds
+        };
         return a + (b - a) * (s - min) / span;
     }
     let t = (seconds / 3600.0 - 7.0) * 0.04167;
-    let w = if weather_coefficient == 0.0 { 1.0 } else { weather_coefficient };
+    let w = if weather_coefficient == 0.0 {
+        1.0
+    } else {
+        weather_coefficient
+    };
     ambient
         * (1.0
             + 5.33332
@@ -93,25 +113,49 @@ pub struct QuickDrive {
 }
 
 const AI_NAMES: &[(&str, &str)] = &[
-    ("Marco Rossi", "ITA"), ("James Walker", "GBR"), ("Lukas Becker", "GER"),
-    ("Pierre Martin", "FRA"), ("Carlos Ruiz", "ESP"), ("Kenji Sato", "JPN"),
-    ("Daan de Vries", "NED"), ("Ethan Miller", "USA"), ("Mateus Silva", "BRA"),
-    ("Mikko Laine", "FIN"), ("Liam O'Brien", "IRL"), ("Anders Berg", "SWE"),
-    ("Tomasz Nowak", "POL"), ("Lucas Moreau", "BEL"), ("Jack Taylor", "AUS"),
-    ("Nico Weber", "AUT"), ("Ivan Petrov", "RUS"), ("Luca Bianchi", "SUI"),
+    ("Marco Rossi", "ITA"),
+    ("James Walker", "GBR"),
+    ("Lukas Becker", "GER"),
+    ("Pierre Martin", "FRA"),
+    ("Carlos Ruiz", "ESP"),
+    ("Kenji Sato", "JPN"),
+    ("Daan de Vries", "NED"),
+    ("Ethan Miller", "USA"),
+    ("Mateus Silva", "BRA"),
+    ("Mikko Laine", "FIN"),
+    ("Liam O'Brien", "IRL"),
+    ("Anders Berg", "SWE"),
+    ("Tomasz Nowak", "POL"),
+    ("Lucas Moreau", "BEL"),
+    ("Jack Taylor", "AUS"),
+    ("Nico Weber", "AUT"),
+    ("Ivan Petrov", "RUS"),
+    ("Luca Bianchi", "SUI"),
 ];
 
-pub fn pick_opponents(car_id: &str, player_skin: &str, skins: &[String], count: u32) -> Vec<Opponent> {
+pub fn pick_opponents(
+    car_id: &str,
+    player_skin: &str,
+    skins: &[String],
+    count: u32,
+) -> Vec<Opponent> {
     let pool: Vec<&String> = {
         let others: Vec<&String> = skins.iter().filter(|s| *s != player_skin).collect();
-        if others.is_empty() { skins.iter().collect() } else { others }
+        if others.is_empty() {
+            skins.iter().collect()
+        } else {
+            others
+        }
     };
     (0..count as usize)
         .map(|i| {
             let (name, nat) = AI_NAMES[i % AI_NAMES.len()];
             Opponent {
                 car_id: car_id.to_owned(),
-                skin_id: pool.get(i % pool.len().max(1)).map(|s| s.to_string()).unwrap_or_default(),
+                skin_id: pool
+                    .get(i % pool.len().max(1))
+                    .map(|s| s.to_string())
+                    .unwrap_or_default(),
                 driver_name: name.to_owned(),
                 nationality: nat.to_owned(),
             }
@@ -135,9 +179,18 @@ pub fn clear_up(file: &mut IniFile) {
     remote.remove("__FEATURES");
     remote.remove("__CM_EXTENDED");
     file.section_mut("RESTART").set_bool("ACTIVE", false);
-    file.section_mut("__PREVIEW_GENERATION").set_bool("ACTIVE", false);
+    file.section_mut("__PREVIEW_GENERATION")
+        .set_bool("ACTIVE", false);
     let lighting = file.section_mut("LIGHTING");
-    for k in ["__CM_WEATHER_TYPE", "__CM_WEATHER_CONTROLLER", "__CM_DATE", "__CM_DATE_USE_TIME", "__CM_WEATHER_HUMIDITY", "__CM_WEATHER_PRESSURE", "__CM_UNCLAMPED_SUN_ANGLE"] {
+    for k in [
+        "__CM_WEATHER_TYPE",
+        "__CM_WEATHER_CONTROLLER",
+        "__CM_DATE",
+        "__CM_DATE_USE_TIME",
+        "__CM_WEATHER_HUMIDITY",
+        "__CM_WEATHER_PRESSURE",
+        "__CM_UNCLAMPED_SUN_ANGLE",
+    ] {
         lighting.remove(k);
     }
     file.section_mut("RACE").remove("__CM_CUSTOM_MODE");
@@ -155,14 +208,18 @@ pub fn apply(file: &mut IniFile, q: &QuickDrive) {
     let header = file.section_mut("HEADER");
     header.set("VERSION", 2);
     header.set("__CM_FEATURE_SET", 2);
-    file.section_mut("LAP_INVALIDATOR").set("ALLOWED_TYRES_OUT", -1);
+    file.section_mut("LAP_INVALIDATOR")
+        .set("ALLOWED_TYRES_OUT", -1);
 
     let race = file.section_mut("RACE");
     race.set("MODEL", q.car_id.to_lowercase());
     race.set("MODEL_CONFIG", "");
     race.set("SKIN", &q.skin_id);
     race.set("TRACK", q.track_id.to_lowercase());
-    race.set("CONFIG_TRACK", q.layout_id.as_deref().unwrap_or("").to_lowercase());
+    race.set(
+        "CONFIG_TRACK",
+        q.layout_id.as_deref().unwrap_or("").to_lowercase(),
+    );
     race.set("CARS", 1);
     race.set("AI_LEVEL", 100);
     race.set_bool("DRIFT_MODE", false);
@@ -202,9 +259,16 @@ pub fn apply(file: &mut IniFile, q: &QuickDrive) {
     groove.set("STARTING_LAPS", starting_laps);
 
     match &q.mode {
-        Mode::Practice { minutes } => session(file, "Practice", SessionType::Practice, *minutes, "PIT"),
+        Mode::Practice { minutes } => {
+            session(file, "Practice", SessionType::Practice, *minutes, "PIT")
+        }
         Mode::Hotlap => session(file, "Hotlap", SessionType::Hotlap, 0, "HOTLAP_START"),
-        Mode::Race { laps, ai_level, starting_position, .. } => {
+        Mode::Race {
+            laps,
+            ai_level,
+            starting_position,
+            ..
+        } => {
             let race = file.section_mut("RACE");
             race.set("CARS", q.opponents.len() + 1);
             race.set("AI_LEVEL", ai_level);
@@ -212,7 +276,10 @@ pub fn apply(file: &mut IniFile, q: &QuickDrive) {
             session(file, "Quick Race", SessionType::Race, 0, "START");
             let s = file.section_mut("SESSION_0");
             s.set("LAPS", laps);
-            s.set("STARTING_POSITION", (*starting_position).clamp(1, q.opponents.len() as u32 + 1));
+            s.set(
+                "STARTING_POSITION",
+                (*starting_position).clamp(1, q.opponents.len() as u32 + 1),
+            );
             for (i, o) in q.opponents.iter().enumerate() {
                 let c = file.section_mut(&format!("CAR_{}", i + 1));
                 c.set("MODEL", o.car_id.to_lowercase());
@@ -234,7 +301,10 @@ pub fn apply(file: &mut IniFile, q: &QuickDrive) {
     let secs = c.time_seconds as f64;
     let temp = file.section_mut("TEMPERATURE");
     temp.set("AMBIENT", format!("{:.0}", c.ambient_c));
-    temp.set("ROAD", format!("{:.0}", road_temperature(secs, c.ambient_c, 1.0)));
+    temp.set(
+        "ROAD",
+        format!("{:.0}", road_temperature(secs, c.ambient_c, 1.0)),
+    );
     let lighting = file.section_mut("LIGHTING");
     lighting.set("SUN_ANGLE", format!("{:.2}", sun_angle(secs)));
     lighting.set("TIME_MULT", format!("{:.1}", c.time_multiplier));

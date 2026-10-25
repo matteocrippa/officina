@@ -127,7 +127,11 @@ fn list_entries(archive: &Path) -> Result<Vec<String>> {
         }
         "7z" => {
             let arc = sevenz_rust::Archive::open(archive).context("opening 7z")?;
-            Ok(arc.files.iter().map(|e| archive_name(&e.name.replace('\\', "/"))).collect::<Result<Vec<_>>>()?)
+            Ok(arc
+                .files
+                .iter()
+                .map(|e| archive_name(&e.name.replace('\\', "/")))
+                .collect::<Result<Vec<_>>>()?)
         }
         "rar" => list_rar(archive),
         "tar" | "tgz" | "gz" => list_tar(archive),
@@ -147,18 +151,27 @@ fn list_entries(archive: &Path) -> Result<Vec<String>> {
 fn list_rar(archive: &Path) -> Result<Vec<String>> {
     // Prefer bsdtar, then 7z.
     if which("bsdtar") {
-        let out = Command::new("bsdtar").arg("-tf").arg(archive).output().context("running bsdtar")?;
+        let out = Command::new("bsdtar")
+            .arg("-tf")
+            .arg(archive)
+            .output()
+            .context("running bsdtar")?;
         if !out.status.success() {
             bail!("bsdtar failed: {}", String::from_utf8_lossy(&out.stderr));
         }
-        return Ok(String::from_utf8_lossy(&out.stdout)
+        return String::from_utf8_lossy(&out.stdout)
             .lines()
             .filter(|l| !l.is_empty())
             .map(archive_name)
-            .collect::<Result<Vec<_>>>()?);
+            .collect::<Result<Vec<_>>>();
     }
     if which("7z") {
-        let out = Command::new("7z").arg("l").arg("-slt").arg(archive).output().context("running 7z")?;
+        let out = Command::new("7z")
+            .arg("l")
+            .arg("-slt")
+            .arg(archive)
+            .output()
+            .context("running 7z")?;
         if !out.status.success() {
             bail!("7z failed: {}", String::from_utf8_lossy(&out.stderr));
         }
@@ -178,15 +191,19 @@ fn list_rar(archive: &Path) -> Result<Vec<String>> {
 
 fn list_tar(archive: &Path) -> Result<Vec<String>> {
     if which("tar") {
-        let out = Command::new("tar").arg("-tf").arg(archive).output().context("running tar")?;
+        let out = Command::new("tar")
+            .arg("-tf")
+            .arg(archive)
+            .output()
+            .context("running tar")?;
         if !out.status.success() {
             bail!("tar failed: {}", String::from_utf8_lossy(&out.stderr));
         }
-        return Ok(String::from_utf8_lossy(&out.stdout)
+        return String::from_utf8_lossy(&out.stdout)
             .lines()
             .filter(|l| !l.is_empty())
             .map(archive_name)
-            .collect::<Result<Vec<_>>>()?);
+            .collect::<Result<Vec<_>>>();
     }
     bail!("tar not found")
 }
@@ -286,10 +303,11 @@ fn install_zip(archive: &Path, items: &[Item]) -> Result<usize> {
             let mut checked = item.target.clone();
             for component in Path::new(rel).components() {
                 checked.push(component);
-                if fs::symlink_metadata(&checked)
-                    .is_ok_and(|m| m.file_type().is_symlink())
-                {
-                    bail!("refusing to overwrite symlink destination: {}", checked.display());
+                if fs::symlink_metadata(&checked).is_ok_and(|m| m.file_type().is_symlink()) {
+                    bail!(
+                        "refusing to overwrite symlink destination: {}",
+                        checked.display()
+                    );
                 }
             }
             if f.is_dir() {
@@ -314,26 +332,45 @@ pub fn extract_to_temp(archive: &Path, dest: &Path) -> Result<()> {
         .unwrap_or_default();
     match ext.as_str() {
         "7z" => {
-            sevenz_rust::decompress_file(archive, dest).map_err(|e| anyhow::anyhow!("7z extract failed: {e}"))?;
+            sevenz_rust::decompress_file(archive, dest)
+                .map_err(|e| anyhow::anyhow!("7z extract failed: {e}"))?;
             Ok(())
         }
         "rar" => {
             if which("bsdtar") {
-                let status = Command::new("bsdtar").arg("-xf").arg(archive).arg("-C").arg(dest).status().context("running bsdtar")?;
+                let status = Command::new("bsdtar")
+                    .arg("-xf")
+                    .arg(archive)
+                    .arg("-C")
+                    .arg(dest)
+                    .status()
+                    .context("running bsdtar")?;
                 if !status.success() {
                     bail!("bsdtar extraction failed");
                 }
                 return Ok(());
             }
             if which("7z") {
-                let status = Command::new("7z").arg("x").arg(format!("-o{}", dest.display())).arg(archive).arg("-y").status().context("running 7z")?;
+                let status = Command::new("7z")
+                    .arg("x")
+                    .arg(format!("-o{}", dest.display()))
+                    .arg(archive)
+                    .arg("-y")
+                    .status()
+                    .context("running 7z")?;
                 if !status.success() {
                     bail!("7z extraction failed");
                 }
                 return Ok(());
             }
             if which("unrar") {
-                let status = Command::new("unrar").arg("x").arg("-y").arg(archive).arg(dest).status().context("running unrar")?;
+                let status = Command::new("unrar")
+                    .arg("x")
+                    .arg("-y")
+                    .arg(archive)
+                    .arg(dest)
+                    .status()
+                    .context("running unrar")?;
                 if !status.success() {
                     bail!("unrar extraction failed");
                 }
@@ -343,7 +380,13 @@ pub fn extract_to_temp(archive: &Path, dest: &Path) -> Result<()> {
         }
         "tar" | "tgz" | "gz" => {
             if which("tar") {
-                let status = Command::new("tar").arg("-xf").arg(archive).arg("-C").arg(dest).status().context("running tar")?;
+                let status = Command::new("tar")
+                    .arg("-xf")
+                    .arg(archive)
+                    .arg("-C")
+                    .arg(dest)
+                    .status()
+                    .context("running tar")?;
                 if !status.success() {
                     bail!("tar extraction failed");
                 }
@@ -358,7 +401,10 @@ pub fn extract_to_temp(archive: &Path, dest: &Path) -> Result<()> {
 fn copy_dir(src: &Path, dst: &Path) -> Result<usize> {
     fs::create_dir_all(dst)?;
     let mut written = 0;
-    for entry in walkdir::WalkDir::new(src).into_iter().filter_map(|e| e.ok()) {
+    for entry in walkdir::WalkDir::new(src)
+        .into_iter()
+        .filter_map(|e| e.ok())
+    {
         let path = entry.path();
         let rel = path.strip_prefix(src).unwrap();
         if rel.as_os_str().is_empty() {

@@ -29,8 +29,12 @@ pub fn create_backup(ac_root: &Path) -> Result<PathBuf> {
 }
 
 pub fn list_backups() -> Vec<PathBuf> {
-    let Some(root) = backup_root() else { return Vec::new() };
-    let Ok(entries) = fs::read_dir(&root) else { return Vec::new() };
+    let Some(root) = backup_root() else {
+        return Vec::new();
+    };
+    let Ok(entries) = fs::read_dir(&root) else {
+        return Vec::new();
+    };
     let mut v: Vec<PathBuf> = entries
         .filter_map(|e| e.ok().map(|de| de.path()))
         .filter(|p| p.is_dir())

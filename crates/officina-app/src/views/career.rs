@@ -25,7 +25,10 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
             return;
         }
     };
-    let progress = state.career_progress.get_or_insert_with(|| events::Progress::default()).clone();
+    let progress = state
+        .career_progress
+        .get_or_insert_with(events::Progress::default)
+        .clone();
 
     ui.label(format!(
         "{} series, {} special events",
@@ -85,7 +88,10 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
             let p = progress.get(&ev.id);
             ui.group(|ui| {
                 ui.label(format!("{}  —  {}", ev.name, ev.id));
-                ui.small(format!("car: {}  track: {}  medal: {}", ev.car, ev.track, p.medal));
+                ui.small(format!(
+                    "car: {}  track: {}  medal: {}",
+                    ev.car, ev.track, p.medal
+                ));
                 if ui.button("Launch").clicked() {
                     state.career_pending = Some((ev.id.clone(), None));
                 }
@@ -115,7 +121,9 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
                     state.career_status = format!("unavailable: {e:#}");
                 } else {
                     match events::prepare(&root, &event, series_ref, 0, "Player", "ITA") {
-                        Ok(path) => state.career_status = format!("race.ini written: {}", path.display()),
+                        Ok(path) => {
+                            state.career_status = format!("race.ini written: {}", path.display())
+                        }
                         Err(e) => {
                             state.career_status = format!("prepare failed: {e:#}");
                         }

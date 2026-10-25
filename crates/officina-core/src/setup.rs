@@ -22,7 +22,10 @@ pub struct Diagnostics {
 pub fn diagnose(settings: &Settings) -> Diagnostics {
     let steam_roots = paths::steam_roots();
     let ac_root = settings.ac_root();
-    let ac_root_valid = ac_root.as_ref().map(|r| paths::is_ac_root(r)).unwrap_or(false);
+    let ac_root_valid = ac_root
+        .as_ref()
+        .map(|r| paths::is_ac_root(r))
+        .unwrap_or(false);
     let compatdata = ac_root.as_ref().and_then(|r| paths::compat_data_dir(r));
     let proton = settings
         .proton
@@ -109,4 +112,24 @@ fn dxvk_present(steam_roots: &[PathBuf], compatdata: Option<&Path>) -> bool {
 
 pub fn linux_setup_command() -> String {
     "curl -Os https://raw.githubusercontent.com/sihawido/assettocorsa-linux-setup/main/assettocorsa-linux-setup.sh && bash assettocorsa-linux-setup.sh".to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::settings::Settings;
+
+    #[test]
+    fn diagnose_without_ac_root_does_not_panic() {
+        let s = Settings::default();
+        let d = diagnose(&s);
+        assert!(d.ac_root.is_none());
+        assert!(!d.ac_root_valid);
+        assert!(d.compatdata.is_none());
+    }
+
+    #[test]
+    fn linux_setup_command_nonempty() {
+        assert!(!linux_setup_command().is_empty());
+    }
 }

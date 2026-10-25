@@ -37,14 +37,13 @@ pub fn show(state: &mut AppState, ui: &mut Ui, ctx: &egui::Context) {
             None => ui.label("AC root not found"),
         };
         ui.small("CSP settings are edited in extension/config or via CSP's own in-game UI.");
-        if ui.button("Install/update CSP from archive...").clicked() {
-            if let Some(path) = rfd::FileDialog::new()
+        if ui.button("Install/update CSP from archive...").clicked()
+            && let Some(path) = rfd::FileDialog::new()
                 .add_filter("Archives", &["zip", "7z", "rar"])
                 .pick_file()
-            {
-                state.plan_install(path);
-                state.nav = crate::state::Nav::Install;
-            }
+        {
+            state.plan_install(path);
+            state.nav = crate::state::Nav::Install;
         }
     });
 
@@ -66,14 +65,13 @@ pub fn show(state: &mut AppState, ui: &mut Ui, ctx: &egui::Context) {
                 ui.label(format!("  {} ({})", w.name, w.id));
             }
         }
-        if ui.button("Install Sol/Pure from archive...").clicked() {
-            if let Some(path) = rfd::FileDialog::new()
+        if ui.button("Install Sol/Pure from archive...").clicked()
+            && let Some(path) = rfd::FileDialog::new()
                 .add_filter("Archives", &["zip", "7z", "rar"])
                 .pick_file()
-            {
-                state.plan_install(path);
-                state.nav = crate::state::Nav::Install;
-            }
+        {
+            state.plan_install(path);
+            state.nav = crate::state::Nav::Install;
         }
     });
 
@@ -107,6 +105,15 @@ pub fn show(state: &mut AppState, ui: &mut Ui, ctx: &egui::Context) {
         }
     });
 
+    ui.separator();
+    let prev = state.settings.auto_update_csp;
+    ui.checkbox(
+        &mut state.settings.auto_update_csp,
+        "Auto-update CSP configs on startup",
+    );
+    if state.settings.auto_update_csp != prev {
+        let _ = state.settings.save();
+    }
     ui.small("Tip: you can also drag-and-drop any archive onto the Install tab.");
     let _ = ctx;
 }

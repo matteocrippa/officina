@@ -11,22 +11,22 @@ pub fn move_to_trash(path: &Path) -> std::io::Result<PathBuf> {
             .arg("trash")
             .arg(path)
             .status();
-        if let Ok(s) = status {
-            if s.success() {
-                return Ok(PathBuf::from("~/.local/share/Trash"));
-            }
+        if let Ok(s) = status
+            && s.success()
+        {
+            return Ok(PathBuf::from("~/.local/share/Trash"));
         }
     }
     if command_exists("trash-put") {
         let status = std::process::Command::new("trash-put").arg(path).status();
-        if let Ok(s) = status {
-            if s.success() {
-                return Ok(PathBuf::from("~/.local/share/Trash"));
-            }
+        if let Ok(s) = status
+            && s.success()
+        {
+            return Ok(PathBuf::from("~/.local/share/Trash"));
         }
     }
     // Manual freedesktop trash fallback.
-    let home = dirs::home_dir().ok_or_else(|| std::io::Error::new(std::io::ErrorKind::Other, "no home"))?;
+    let home = dirs::home_dir().ok_or_else(|| std::io::Error::other("no home"))?;
     let trash_files = home.join(".local/share/Trash/files");
     let trash_info = home.join(".local/share/Trash/info");
     fs::create_dir_all(&trash_files)?;
@@ -97,10 +97,9 @@ fn chrono_like_now() -> String {
     if let Ok(out) = std::process::Command::new("date")
         .arg("+%Y-%m-%dT%H:%M:%S")
         .output()
+        && out.status.success()
     {
-        if out.status.success() {
-            return String::from_utf8_lossy(&out.stdout).trim().to_string();
-        }
+        return String::from_utf8_lossy(&out.stdout).trim().to_string();
     }
     "1970-01-01T00:00:00".to_string()
 }

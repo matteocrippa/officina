@@ -26,6 +26,8 @@ pub struct Settings {
     pub last_skin: Option<String>,
     #[serde(default)]
     pub last_session: Option<QuickDrive>,
+    #[serde(default)]
+    pub auto_update_csp: bool,
 }
 
 fn default_theme() -> String {
@@ -39,22 +41,20 @@ impl Settings {
 
     pub fn load() -> Self {
         if let Some(p) = Self::path() {
-            if p.exists() {
-                if let Ok(text) = fs::read_to_string(&p) {
-                    if let Ok(s) = toml::from_str::<Settings>(&text) {
-                        return s;
-                    }
-                }
+            if p.exists()
+                && let Ok(text) = fs::read_to_string(&p)
+                && let Ok(s) = toml::from_str::<Settings>(&text)
+            {
+                return s;
             }
             // Migrate legacy settings.json if present.
             let legacy = p.with_file_name("settings.json");
-            if legacy.exists() {
-                if let Ok(text) = fs::read_to_string(&legacy) {
-                    if let Ok(s) = serde_json::from_str::<Settings>(&text) {
-                        let _ = s.save();
-                        return s;
-                    }
-                }
+            if legacy.exists()
+                && let Ok(text) = fs::read_to_string(&legacy)
+                && let Ok(s) = serde_json::from_str::<Settings>(&text)
+            {
+                let _ = s.save();
+                return s;
             }
         }
         Self::default()

@@ -16,11 +16,17 @@ pub struct Section {
 
 impl Section {
     pub fn new(name: impl Into<String>) -> Self {
-        Self { name: name.into(), entries: Vec::new() }
+        Self {
+            name: name.into(),
+            entries: Vec::new(),
+        }
     }
 
     pub fn get(&self, key: &str) -> Option<&str> {
-        self.entries.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_str())
+        self.entries
+            .iter()
+            .find(|(k, _)| k == key)
+            .map(|(_, v)| v.as_str())
     }
 
     pub fn set(&mut self, key: &str, value: impl ToString) -> &mut Self {
@@ -66,12 +72,12 @@ impl IniFile {
         let mut current: Option<usize> = None;
         for raw in text.trim_start_matches('\u{feff}').lines() {
             let line = raw.trim();
-            if line.starts_with('[') {
-                if let Some(end) = line.find(']') {
-                    let name = line[1..end].trim().to_owned();
-                    current = Some(file.section_index(&name));
-                    continue;
-                }
+            if line.starts_with('[')
+                && let Some(end) = line.find(']')
+            {
+                let name = line[1..end].trim().to_owned();
+                current = Some(file.section_index(&name));
+                continue;
             }
             let line = strip_comment(line).trim();
             if line.is_empty() {
@@ -92,7 +98,11 @@ impl IniFile {
     }
 
     pub fn load_or_default(path: &std::path::Path) -> Result<Self> {
-        if path.exists() { Self::load(path) } else { Ok(Self::default()) }
+        if path.exists() {
+            Self::load(path)
+        } else {
+            Ok(Self::default())
+        }
     }
 
     fn section_index(&mut self, name: &str) -> usize {
@@ -136,7 +146,16 @@ impl IniFile {
         &self.sections
     }
 
-    pub fn to_string(&self) -> String {
+    pub fn save(&self, path: &std::path::Path) -> Result<()> {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::write(path, self.to_string()).with_context(|| format!("writing {}", path.display()))
+    }
+}
+
+impl std::fmt::Display for IniFile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut out = String::new();
         for (i, s) in self.sections.iter().enumerate() {
             if i > 0 {
@@ -147,14 +166,7 @@ impl IniFile {
                 let _ = writeln!(out, "{k}={v}");
             }
         }
-        out
-    }
-
-    pub fn save(&self, path: &std::path::Path) -> Result<()> {
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        fs::write(path, self.to_string()).with_context(|| format!("writing {}", path.display()))
+        f.write_str(&out)
     }
 }
 

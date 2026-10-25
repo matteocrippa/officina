@@ -43,16 +43,26 @@ pub fn start(ac_root: &Path, opts: &LaunchOptions) -> Result<Child> {
         };
         let compat = paths::compat_data_dir(ac_root)
             .context("no Proton prefix for Assetto Corsa yet; run it from Steam once")?;
-        let steam_root = paths::steam_roots().into_iter().next().context("Steam install not found")?;
+        let steam_root = paths::steam_roots()
+            .into_iter()
+            .next()
+            .context("Steam install not found")?;
         let runtime = find_steam_run();
         if Path::new("/etc/NIXOS").exists() && runtime.is_none() {
             bail!("steam-run is required on NixOS; enable/install it alongside Steam");
         }
         let mut c = proton_command(&acs, &proton, runtime.as_deref());
-        const KEEP: [&str; 5] = ["NIX_LD", "NIX_LD_LIBRARY_PATH", "NIX_PATH", "NIX_PROFILES", "NIX_USER_PROFILE_DIR"];
+        const KEEP: [&str; 5] = [
+            "NIX_LD",
+            "NIX_LD_LIBRARY_PATH",
+            "NIX_PATH",
+            "NIX_PROFILES",
+            "NIX_USER_PROFILE_DIR",
+        ];
         for (key, _) in std::env::vars_os() {
             let name = key.to_string_lossy();
-            let build_var = (name.starts_with("NIX") && !KEEP.contains(&&*name)) || name == "IN_NIX_SHELL";
+            let build_var =
+                (name.starts_with("NIX") && !KEEP.contains(&&*name)) || name == "IN_NIX_SHELL";
             if build_var {
                 c.env_remove(key);
             }
@@ -62,10 +72,10 @@ pub fn start(ac_root: &Path, opts: &LaunchOptions) -> Result<Child> {
             .env("STEAM_COMPAT_APP_ID", &app_id);
 
         let sdl_dirs = paths::steam_sdl_lib_dirs();
-        if let Ok(joined) = std::env::join_paths(&sdl_dirs) {
-            if !joined.is_empty() {
-                c.env("LD_LIBRARY_PATH", joined);
-            }
+        if let Ok(joined) = std::env::join_paths(&sdl_dirs)
+            && !joined.is_empty()
+        {
+            c.env("LD_LIBRARY_PATH", joined);
         }
         if std::env::var_os("PROTON_DISABLE_HIDRAW").is_none() {
             c.env(
@@ -75,24 +85,30 @@ pub fn start(ac_root: &Path, opts: &LaunchOptions) -> Result<Child> {
         }
         c
     };
-    cmd.current_dir(ac_root).env("SteamAppId", &app_id).env("SteamGameId", &app_id);
-    cmd.spawn().with_context(|| format!("starting {}", acs.display()))
+    cmd.current_dir(ac_root)
+        .env("SteamAppId", &app_id)
+        .env("SteamGameId", &app_id);
+    cmd.spawn()
+        .with_context(|| format!("starting {}", acs.display()))
 }
 
 pub fn find_proton(ac_root: &Path) -> Option<PathBuf> {
-    if let Some(compat) = paths::compat_data_dir(ac_root) {
-        if let Ok(info) = std::fs::read_to_string(compat.join("config_info")) {
-            for line in info.lines() {
-                let p = Path::new(line.trim());
-                if let Some(dir) = p.ancestors().find(|a| a.join("proton").is_file()) {
-                    return Some(dir.join("proton"));
-                }
+    if let Some(compat) = paths::compat_data_dir(ac_root)
+        && let Ok(info) = std::fs::read_to_string(compat.join("config_info"))
+    {
+        for line in info.lines() {
+            let p = Path::new(line.trim());
+            if let Some(dir) = p.ancestors().find(|a| a.join("proton").is_file()) {
+                return Some(dir.join("proton"));
             }
         }
     }
     let mut found = Vec::new();
     for root in paths::steam_roots() {
-        for dir in [root.join("compatibilitytools.d"), root.join("steamapps").join("common")] {
+        for dir in [
+            root.join("compatibilitytools.d"),
+            root.join("steamapps").join("common"),
+        ] {
             for e in std::fs::read_dir(&dir).into_iter().flatten().flatten() {
                 let script = e.path().join("proton");
                 if script.is_file() {
@@ -106,8 +122,11 @@ pub fn find_proton(ac_root: &Path) -> Option<PathBuf> {
 }
 
 pub fn find_steam_run() -> Option<PathBuf> {
-    std::env::var_os("PATH")
-        .and_then(|paths| std::env::split_paths(&paths).map(|p| p.join("steam-run")).find(|p| p.is_file()))
+    std::env::var_os("PATH").and_then(|paths| {
+        std::env::split_paths(&paths)
+            .map(|p| p.join("steam-run"))
+            .find(|p| p.is_file())
+    })
 }
 
 fn proton_command(acs: &Path, proton: &Path, runtime: Option<&Path>) -> Command {

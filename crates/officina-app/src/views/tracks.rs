@@ -1,5 +1,5 @@
-use officina_core::content;
 use egui::Ui;
+use officina_core::content;
 
 use crate::icons;
 use crate::state::AppState;
@@ -43,10 +43,8 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
                                 .fit_to_exact_size(egui::vec2(96.0, 64.0)),
                         );
                     } else {
-                        let (rect, _) = ui.allocate_exact_size(
-                            egui::vec2(96.0, 64.0),
-                            egui::Sense::hover(),
-                        );
+                        let (rect, _) =
+                            ui.allocate_exact_size(egui::vec2(96.0, 64.0), egui::Sense::hover());
                         ui.painter().rect_stroke(
                             rect,
                             4.0,
@@ -61,8 +59,11 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
                         );
                     }
                     ui.vertical(|ui| {
-                        ui.label(format!("{}", e.layout.name));
-                        ui.small(format!("track: {}  layout: {:?}", e.track_id, e.layout.layout_id));
+                        ui.label(e.layout.name.to_string());
+                        ui.small(format!(
+                            "track: {}  layout: {:?}",
+                            e.track_id, e.layout.layout_id
+                        ));
                         if let Some(len) = &e.layout.length {
                             ui.small(format!("length: {len}"));
                         }
@@ -75,10 +76,10 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
                                 uninstall_target = Some(t.dir.clone());
                             }
                         }
-                        if ui.button("Disable track").clicked() {
-                            if let Some(t) = state.tracks.iter().find(|t| t.id == e.track_id) {
-                                disable_target = Some((t.dir.clone(), e.track_id.clone()));
-                            }
+                        if ui.button("Disable track").clicked()
+                            && let Some(t) = state.tracks.iter().find(|t| t.id == e.track_id)
+                        {
+                            disable_target = Some((t.dir.clone(), e.track_id.clone()));
                         }
                     });
                 });
@@ -95,30 +96,39 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
             Err(e) => state.status = format!("Uninstall failed: {e}"),
         }
     }
-    if let Some((dir, id)) = disable_target {
-        if let Some(root) = state.settings.ac_root() {
-            let _ = dir;
-            match officina_core::mods::disable(&root, "tracks", &id) {
-                Ok(_) => { state.status = "Disabled.".into(); state.trigger_scan(); }
-                Err(e) => state.status = format!("Disable failed: {e}"),
+    if let Some((dir, id)) = disable_target
+        && let Some(root) = state.settings.ac_root()
+    {
+        let _ = dir;
+        match officina_core::mods::disable(&root, "tracks", &id) {
+            Ok(_) => {
+                state.status = "Disabled.".into();
+                state.trigger_scan();
             }
+            Err(e) => state.status = format!("Disable failed: {e}"),
         }
     }
     // Disabled tracks section
     let ac_root = state.settings.ac_root();
-    let disabled = ac_root.as_ref().map(|r| officina_core::mods::list_disabled(r, "tracks")).unwrap_or_default();
+    let disabled = ac_root
+        .as_ref()
+        .map(|r| officina_core::mods::list_disabled(r, "tracks"))
+        .unwrap_or_default();
     if !disabled.is_empty() {
         ui.separator();
         ui.label(format!("Disabled tracks ({}):", disabled.len()));
         for id in &disabled {
             ui.horizontal(|ui| {
                 ui.label(id);
-                if ui.button("Enable").clicked() {
-                    if let Some(root) = state.settings.ac_root() {
-                        match officina_core::mods::enable(&root, "tracks", id) {
-                            Ok(_) => { state.status = "Enabled.".into(); state.trigger_scan(); }
-                            Err(e) => state.status = format!("Enable failed: {e}"),
+                if ui.button("Enable").clicked()
+                    && let Some(root) = state.settings.ac_root()
+                {
+                    match officina_core::mods::enable(&root, "tracks", id) {
+                        Ok(_) => {
+                            state.status = "Enabled.".into();
+                            state.trigger_scan();
                         }
+                        Err(e) => state.status = format!("Enable failed: {e}"),
                     }
                 }
             });

@@ -23,7 +23,9 @@ impl GamepadState {
     }
 
     pub fn poll(&mut self, ctx: &Context) {
-        let Some(g) = &mut self.gilrs else { return; };
+        let Some(g) = &mut self.gilrs else {
+            return;
+        };
         self.connected = g.gamepads().count() > 0;
         if !self.connected {
             self.status = "no gamepad".into();

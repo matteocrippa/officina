@@ -100,10 +100,7 @@ fn render_setting(gc: &mut game_cfg::GameConfig, s: &Setting, ui: &mut Ui) {
                     )
                     .show_ui(ui, |ui| {
                         for (v, l) in *opts {
-                            if ui
-                                .selectable_label(cur == *v, *l)
-                                .clicked()
-                            {
+                            if ui.selectable_label(cur == *v, *l).clicked() {
                                 gc.set(s.file, s.section, s.key, *v);
                             }
                         }
@@ -115,7 +112,11 @@ fn render_setting(gc: &mut game_cfg::GameConfig, s: &Setting, ui: &mut Ui) {
             ui.horizontal(|ui| {
                 ui.label(s.label);
                 egui::ComboBox::from_id_salt(format!("filt-{}-{}-{}", s.file, s.section, s.key))
-                    .selected_text(if cur.is_empty() { "none".into() } else { cur.clone() })
+                    .selected_text(if cur.is_empty() {
+                        "none".into()
+                    } else {
+                        cur.clone()
+                    })
                     .show_ui(ui, |ui| {
                         for f in gc.filters.clone() {
                             if ui.selectable_label(cur == f, &f).clicked() {
@@ -125,7 +126,13 @@ fn render_setting(gc: &mut game_cfg::GameConfig, s: &Setting, ui: &mut Ui) {
                     });
             });
         }
-        Kind::Number { min, max, step, scale, suffix } => {
+        Kind::Number {
+            min,
+            max,
+            step,
+            scale,
+            suffix,
+        } => {
             let mut val = gc.number(s.file, s.section, s.key);
             if val == 0. && gc.get(s.file, s.section, s.key).is_none() {
                 val = *min;
@@ -133,10 +140,7 @@ fn render_setting(gc: &mut game_cfg::GameConfig, s: &Setting, ui: &mut Ui) {
             ui.horizontal(|ui| {
                 ui.label(s.label);
                 if ui
-                    .add(
-                        egui::Slider::new(&mut val, *min..=*max)
-                            .step_by(*step),
-                    )
+                    .add(egui::Slider::new(&mut val, *min..=*max).step_by(*step))
                     .changed()
                 {
                     gc.set(s.file, s.section, s.key, game_cfg::fmt_number(val));

@@ -15,7 +15,11 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
         ui.label("Car:");
         let car_ids: Vec<String> = state.cars.iter().map(|c| c.id.clone()).collect();
         egui::ComboBox::from_id_salt("qd_car")
-            .selected_text(if state.qd_car.is_empty() { "select car" } else { &state.qd_car })
+            .selected_text(if state.qd_car.is_empty() {
+                "select car"
+            } else {
+                &state.qd_car
+            })
             .show_ui(ui, |ui| {
                 for id in &car_ids {
                     if ui.selectable_label(state.qd_car == *id, id).clicked() {
@@ -37,7 +41,11 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
     ui.horizontal(|ui| {
         ui.label("Skin:");
         egui::ComboBox::from_id_salt("qd_skin")
-            .selected_text(if state.qd_skin.is_empty() { "select skin" } else { &state.qd_skin })
+            .selected_text(if state.qd_skin.is_empty() {
+                "select skin"
+            } else {
+                &state.qd_skin
+            })
             .show_ui(ui, |ui| {
                 for s in &skins {
                     if ui.selectable_label(state.qd_skin == *s, s).clicked() {
@@ -64,7 +72,8 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
             .show_ui(ui, |ui| {
                 for e in &entries {
                     let key = e.key();
-                    let is_sel = state.qd_track == e.track_id && state.qd_layout == e.layout.layout_id;
+                    let is_sel =
+                        state.qd_track == e.track_id && state.qd_layout == e.layout.layout_id;
                     if ui.selectable_label(is_sel, &key).clicked() {
                         state.qd_track = e.track_id.clone();
                         state.qd_layout = e.layout.layout_id.clone();
@@ -106,7 +115,10 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
     ui.label("Conditions");
     ui.horizontal(|ui| {
         ui.label("Time (s since midnight):");
-        ui.add(egui::Slider::new(&mut state.qd_time_seconds, race::TIME_MIN..=race::TIME_MAX));
+        ui.add(egui::Slider::new(
+            &mut state.qd_time_seconds,
+            race::TIME_MIN..=race::TIME_MAX,
+        ));
     });
     ui.horizontal(|ui| {
         ui.label("Ambient C:");
@@ -122,14 +134,23 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
                 let (ic, _) = icons::weather(w);
                 format!("{} {} ({})", ic, w.name, w.id)
             })
-            .unwrap_or_else(|| if state.qd_weather.is_empty() { "select weather".to_string() } else { state.qd_weather.clone() });
+            .unwrap_or_else(|| {
+                if state.qd_weather.is_empty() {
+                    "select weather".to_string()
+                } else {
+                    state.qd_weather.clone()
+                }
+            });
         egui::ComboBox::from_id_salt("qd_weather")
             .selected_text(sel)
             .show_ui(ui, |ui| {
                 for w in &state.weather {
                     let (ic, _) = icons::weather(w);
                     let label = format!("{} {} ({})", ic, w.name, w.id);
-                    if ui.selectable_label(state.qd_weather == w.id, &label).clicked() {
+                    if ui
+                        .selectable_label(state.qd_weather == w.id, &label)
+                        .clicked()
+                    {
                         state.qd_weather = w.id.clone();
                     }
                 }
@@ -192,7 +213,9 @@ fn launch_quick_drive(state: &mut AppState) {
         .unwrap_or_default();
 
     let mode = match state.qd_mode {
-        0 => Mode::Practice { minutes: state.qd_minutes },
+        0 => Mode::Practice {
+            minutes: state.qd_minutes,
+        },
         1 => Mode::Hotlap,
         _ => Mode::Race {
             laps: state.qd_laps,
