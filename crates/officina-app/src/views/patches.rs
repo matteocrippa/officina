@@ -2,7 +2,7 @@ use std::path::Path;
 
 use egui::Ui;
 
-use crate::state::AppState;
+use crate::state::{AppMsg, AppState};
 
 fn csp_installed(ac_root: &Path) -> Option<String> {
     let ext = ac_root.join("extension");
@@ -74,6 +74,36 @@ pub fn show(state: &mut AppState, ui: &mut Ui, ctx: &egui::Context) {
                 state.plan_install(path);
                 state.nav = crate::state::Nav::Install;
             }
+        }
+    });
+
+    ui.separator();
+    ui.group(|ui| {
+        ui.label("CSP config pack (official)");
+        ui.small("Download the latest car/track light configs, VAO patches, backgrounds, textures and fonts from the official acc-extension-config repo into extension/.");
+        if ui.button("Update CSP configs").clicked() && !state.install_busy {
+            state.install_busy = true;
+            state.patches_status = "Downloading CSP configs...".into();
+            let tx = state.tx.clone();
+            let ac_root = state.settings.ac_root();
+            std::thread::spawn(move || {
+                match ac_root {
+                    Some(root) => match officina_core::csp_config::update_csp_configs(&root) {
+                        Ok(n) => {
+                            let _ = tx.send(AppMsg::PatchesDone(format!("CSP configs updated: {n} file(s).")));
+                        }
+                        Err(e) => {
+                            let _ = tx.send(AppMsg::PatchesDone(format!("CSP config update failed: {e:#}")));
+                        }
+                    },
+                    None => {
+                        let _ = tx.send(AppMsg::PatchesDone("AC root not found".into()));
+                    }
+                }
+            });
+        }
+        if !state.patches_status.is_empty() {
+            ui.label(&state.patches_status);
         }
     });
 

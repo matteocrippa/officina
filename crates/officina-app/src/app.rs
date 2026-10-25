@@ -79,6 +79,10 @@ impl eframe::App for App {
                         self.state.game_settings_loading = false;
                         self.state.game_settings_status = "Loaded.".into();
                     }
+                    AppMsg::PatchesDone(msg) => {
+                        self.state.install_busy = false;
+                        self.state.patches_status = msg;
+                    }
                     AppMsg::Error(e) => {
                         self.state.scanning = false;
                         self.state.install_busy = false;

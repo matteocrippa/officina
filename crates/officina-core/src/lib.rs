@@ -5,6 +5,7 @@ pub const AC_APP_ID: u32 = 244210;
 
 pub mod acd;
 pub mod backup;
+pub mod csp_config;
 pub mod content;
 pub mod events;
 pub mod game_cfg;
@@ -16,5 +17,6 @@ pub mod mods;
 pub mod paths;
 pub mod race;
 pub mod settings;
+pub mod setup;
 pub mod trash;
 pub mod validate;

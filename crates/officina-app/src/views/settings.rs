@@ -54,6 +54,36 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
         }
     }
     ui.separator();
+    ui.heading("Setup / Diagnostics");
+    let diag = officina_core::setup::diagnose(&state.settings);
+    let check = |ok: bool| if ok { "✅" } else { "❌" };
+    ui.label(format!("{} Steam roots: {}", check(!diag.steam_roots.is_empty()), diag.steam_roots.len()));
+    ui.label(format!("{} AC root: {}", check(diag.ac_root_valid), diag.ac_root.as_ref().map(|p| p.display().to_string()).unwrap_or_else(|| "<not found>".into())));
+    ui.label(format!("{} Compatdata: {}", check(diag.compatdata.is_some()), diag.compatdata.as_ref().map(|p| p.display().to_string()).unwrap_or_else(|| "<none>".into())));
+    ui.label(format!("{} Proton: {}", check(diag.proton.is_some()), diag.proton.as_ref().map(|p| p.display().to_string()).unwrap_or_else(|| "<not found>".into())));
+    ui.label(format!("{} Proton-GE: {}", check(!diag.proton_ge.is_empty()), if diag.proton_ge.is_empty() { "none found".into() } else { diag.proton_ge.iter().map(|p| p.display().to_string()).collect::<Vec<_>>().join(", ") }));
+    ui.label(format!("{} CSP: {}", check(diag.csp.is_some()), diag.csp.clone().unwrap_or_else(|| "not installed".into())));
+    ui.label(format!("{} DXVK (heuristic): {}", check(diag.dxvk), if diag.dxvk { "detected" } else { "not detected" }));
+    if diag.ac_root.is_none() || !diag.ac_root_valid {
+        ui.small("Install Assetto Corsa on Steam first.");
+    }
+    if diag.compatdata.is_none() && diag.ac_root.is_some() {
+        ui.small("Run Assetto Corsa from Steam once to create the Proton prefix.");
+    }
+    if diag.proton_ge.is_empty() {
+        ui.small("Proton-GE not found. Recommended for best compatibility.");
+        if ui.button("Open Proton-GE releases").clicked() {
+            let _ = std::process::Command::new("xdg-open")
+                .arg("https://github.com/GloriousEggroll/proton-ge-custom/releases")
+                .spawn();
+        }
+        ui.small("Or run the upstream Linux setup script:");
+        ui.monospace(officina_core::setup::linux_setup_command());
+    }
+    if diag.csp.is_none() && diag.ac_root.is_some() {
+        ui.small("CSP not installed. Use the Patches tab to install it.");
+    }
+    ui.separator();
     ui.heading("Updates");
     ui.horizontal(|ui| {
         ui.label("Repo (owner/name):");

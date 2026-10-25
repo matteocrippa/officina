@@ -18,6 +18,7 @@ pub enum AppMsg {
     },
     CareerLoaded(officina_core::events::Catalog, officina_core::events::Progress),
     GameConfigLoaded(officina_core::game_cfg::GameConfig),
+    PatchesDone(String),
     Error(String),
 }
 
@@ -82,6 +83,8 @@ pub struct AppState {
 
     // Check mods view state
     pub check_mods_status: String,
+    // Patches view state
+    pub patches_status: String,
 
     // Gamepad state
     pub gamepad: crate::gamepad::GamepadState,
@@ -138,6 +141,7 @@ impl AppState {
             game_settings_tab: 0,
             game_settings_status: String::new(),
             check_mods_status: String::new(),
+            patches_status: String::new(),
             gamepad: crate::gamepad::GamepadState::new(),
             career_catalog: None,
             career_progress: None,

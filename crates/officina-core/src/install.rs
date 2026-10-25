@@ -307,7 +307,7 @@ fn install_zip(archive: &Path, items: &[Item]) -> Result<usize> {
     Ok(written)
 }
 
-fn extract_to_temp(archive: &Path, dest: &Path) -> Result<()> {
+pub fn extract_to_temp(archive: &Path, dest: &Path) -> Result<()> {
     let ext = archive
         .extension()
         .map(|e| e.to_string_lossy().to_lowercase())
