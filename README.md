@@ -48,6 +48,17 @@ officina acd unpack data.acd [out_dir]
 officina acd pack data_dir [data.acd]
 ```
 
+## 🎮 Steam Deck / Game Mode
+
+Officina runs on Steam Deck. Recommended flow:
+
+1. **First-time setup in Desktop Mode** — install Assetto Corsa, run it once from Steam (creates the Proton prefix), and run the upstream setup script if needed.
+2. Add `officina` to Steam as a **Non-Steam Game** (Library → Add a Game → Add a Non-Steam Game) so it appears in the Game Mode library grid.
+3. In the shortcut properties, enable **"Use Steam Input"** so the Deck controls and on-screen keyboard work in text fields.
+4. Launch from Game Mode. Gamescope scaling may need tuning; text-heavy views are easier with the on-screen keyboard.
+
+Desktop Mode remains the easiest place for mod installs and file management; Game Mode works well for launching and Quick Drive.
+
 ## ⚙️ Config
 
 `~/.config/officina/settings.toml` — AC root & Proton auto-detected, overridable.
