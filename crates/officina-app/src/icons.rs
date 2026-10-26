@@ -39,6 +39,7 @@ pub fn nav(n: Nav) -> &'static str {
         Nav::Install => "📦",
         Nav::Settings => "⚙",
         Nav::About => "ℹ",
+        Nav::Setups => "🔧",
     }
 }
 

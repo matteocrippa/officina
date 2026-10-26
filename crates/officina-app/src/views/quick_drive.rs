@@ -55,6 +55,41 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
             });
     });
 
+    // Setup picker
+    let setups: Vec<String> = state
+        .settings
+        .ac_root()
+        .map(|r| {
+            officina_core::setups::list_setups(&r, &state.qd_car)
+                .into_iter()
+                .map(|p| p.display().to_string())
+                .collect()
+        })
+        .unwrap_or_default();
+    ui.horizontal(|ui| {
+        ui.label("Setup:");
+        let sel = if state.qd_setup.is_empty() {
+            "none".to_string()
+        } else {
+            state.qd_setup.clone()
+        };
+        egui::ComboBox::from_id_salt("qd_setup")
+            .selected_text(sel)
+            .show_ui(ui, |ui| {
+                if ui
+                    .selectable_label(state.qd_setup.is_empty(), "none")
+                    .clicked()
+                {
+                    state.qd_setup.clear();
+                }
+                for s in &setups {
+                    if ui.selectable_label(state.qd_setup == *s, s).clicked() {
+                        state.qd_setup = s.clone();
+                    }
+                }
+            });
+    });
+
     // Track + layout picker
     let entries = content::track_entries(&state.tracks);
     ui.horizontal(|ui| {
@@ -242,6 +277,7 @@ fn launch_quick_drive(state: &mut AppState) {
         penalties: state.qd_penalties,
         fixed_setup: state.qd_fixed_setup,
         use_mph: state.qd_use_mph,
+        setup: state.qd_setup.clone(),
         opponents: Vec::new(),
     };
 

@@ -109,6 +109,8 @@ pub struct QuickDrive {
     pub penalties: bool,
     pub fixed_setup: bool,
     pub use_mph: bool,
+    #[serde(default)]
+    pub setup: String,
     pub opponents: Vec<Opponent>,
 }
 
@@ -230,7 +232,7 @@ pub fn apply(file: &mut IniFile, q: &QuickDrive) {
 
     let car0 = file.section_mut("CAR_0");
     *car0 = crate::ini::Section::new("CAR_0");
-    car0.set("SETUP", "");
+    car0.set("SETUP", &q.setup);
     car0.set("SKIN", q.skin_id.to_lowercase());
     car0.set("MODEL", "-");
     car0.set("MODEL_CONFIG", "");

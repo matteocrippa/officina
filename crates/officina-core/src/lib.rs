@@ -18,5 +18,6 @@ pub mod paths;
 pub mod race;
 pub mod settings;
 pub mod setup;
+pub mod setups;
 pub mod trash;
 pub mod validate;

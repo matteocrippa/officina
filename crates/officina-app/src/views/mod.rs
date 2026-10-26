@@ -7,5 +7,6 @@ pub mod install;
 pub mod patches;
 pub mod quick_drive;
 pub mod settings;
+pub mod setups;
 pub mod tracks;
 pub mod weather;

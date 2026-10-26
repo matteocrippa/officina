@@ -20,6 +20,54 @@ impl Default for App {
                 });
             }
         }
+        // File watcher: poll content dirs and trigger rescan on change.
+        if let Some(root) = s.settings.ac_root() {
+            let tx = s.tx.clone();
+            std::thread::spawn(move || {
+                use std::collections::BTreeSet;
+                use std::fs;
+                use std::time::Duration;
+                let mut last: Option<BTreeSet<(String, u64)>> = None;
+                loop {
+                    let mut sig = BTreeSet::new();
+                    for sub in ["cars", "tracks", "weather"] {
+                        let dir = root.join("content").join(sub);
+                        if let Ok(meta) = fs::metadata(&dir) {
+                            let mt = meta
+                                .modified()
+                                .ok()
+                                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                                .map(|d| d.as_secs())
+                                .unwrap_or(0);
+                            sig.insert((format!("{sub}/."), mt));
+                        }
+                        if let Ok(entries) = fs::read_dir(&dir) {
+                            for e in entries.flatten() {
+                                if let Ok(m) = fs::metadata(e.path()) {
+                                    let mt = m
+                                        .modified()
+                                        .ok()
+                                        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                                        .map(|d| d.as_secs())
+                                        .unwrap_or(0);
+                                    sig.insert((
+                                        format!("{}/{}", sub, e.file_name().to_string_lossy()),
+                                        mt,
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                    if let Some(prev) = &last
+                        && *prev != sig
+                    {
+                        let _ = tx.send(AppMsg::Rescan);
+                    }
+                    last = Some(sig);
+                    std::thread::sleep(Duration::from_secs(5));
+                }
+            });
+        }
         s.trigger_scan();
         Self { state: s }
     }
@@ -114,6 +162,9 @@ impl eframe::App for App {
                     self.state.install_busy = false;
                     self.state.patches_status = msg;
                 }
+                AppMsg::Rescan => {
+                    self.state.trigger_scan();
+                }
                 AppMsg::Error(e) => {
                     self.state.scanning = false;
                     self.state.install_busy = false;
@@ -138,6 +189,7 @@ impl eframe::App for App {
                 ("Install", Nav::Install),
                 ("Settings", Nav::Settings),
                 ("About", Nav::About),
+                ("Setups", Nav::Setups),
             ] {
                 let entry = format!("{}  {}", crate::icons::nav(nav), label);
                 if ui.selectable_label(self.state.nav == nav, entry).clicked() {
@@ -164,6 +216,7 @@ impl eframe::App for App {
             Nav::Install => views::install::show(&mut self.state, ui, ctx),
             Nav::Settings => views::settings::show(&mut self.state, ui),
             Nav::About => views::about::show(&mut self.state, ui),
+            Nav::Setups => views::setups::show(&mut self.state, ui),
         });
 
         if self.state.scanning || self.state.install_busy {

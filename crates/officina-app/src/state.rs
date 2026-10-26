@@ -22,6 +22,7 @@ pub enum AppMsg {
     ),
     GameConfigLoaded(officina_core::game_cfg::GameConfig),
     PatchesDone(String),
+    Rescan,
     Error(String),
 }
 
@@ -39,6 +40,7 @@ pub enum Nav {
     Install,
     Settings,
     About,
+    Setups,
 }
 
 pub struct AppState {
@@ -77,6 +79,7 @@ pub struct AppState {
     pub qd_penalties: bool,
     pub qd_fixed_setup: bool,
     pub qd_use_mph: bool,
+    pub qd_setup: String,
     pub qd_status: String,
 
     // Game settings view state
@@ -139,6 +142,7 @@ impl AppState {
             qd_penalties: true,
             qd_fixed_setup: false,
             qd_use_mph: false,
+            qd_setup: String::new(),
             qd_status: String::new(),
             game_config: None,
             game_settings_loading: false,
@@ -164,6 +168,7 @@ impl AppState {
             s.qd_penalties = qd.penalties;
             s.qd_fixed_setup = qd.fixed_setup;
             s.qd_use_mph = qd.use_mph;
+            s.qd_setup = qd.setup.clone();
             s.qd_time_seconds = qd.conditions.time_seconds;
             s.qd_ambient = qd.conditions.ambient_c;
             s.qd_weather = qd.conditions.weather_id.clone();
