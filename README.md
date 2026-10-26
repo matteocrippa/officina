@@ -9,6 +9,9 @@ Native Rust + egui. No Electron, no .NET — just a small binary.
 ## ✨ Features
 
 - 🚗 **Cars / 🏁 Tracks** — browse, filter, view specs, skins, badges
+- ☁ **Weather** — browse presets, enable/disable
+- 📂 **Setups** — manage car setups, apply in Quick Drive
+- 📊 **Results** — race results and lap times
 - 📦 **Mod installer** — drag & drop `.zip`/`.7z`/`.rar`/`.tar.gz` (cars, tracks, CSP, Sol, Pure)
 - ⚡ **Quick Drive** — car/skin/track, sessions, laps, opponents, weather/time/temp
 - 🏆 **Career & Special Events** — series progression, medals, launch
