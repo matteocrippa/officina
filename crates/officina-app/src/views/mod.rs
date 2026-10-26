@@ -6,6 +6,7 @@ pub mod game_settings;
 pub mod install;
 pub mod patches;
 pub mod quick_drive;
+pub mod results;
 pub mod settings;
 pub mod setups;
 pub mod tracks;

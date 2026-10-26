@@ -190,6 +190,7 @@ impl eframe::App for App {
                 ("Settings", Nav::Settings),
                 ("About", Nav::About),
                 ("Setups", Nav::Setups),
+                ("Results", Nav::Results),
             ] {
                 let entry = format!("{}  {}", crate::icons::nav(nav), label);
                 if ui.selectable_label(self.state.nav == nav, entry).clicked() {
@@ -217,6 +218,7 @@ impl eframe::App for App {
             Nav::Settings => views::settings::show(&mut self.state, ui),
             Nav::About => views::about::show(&mut self.state, ui),
             Nav::Setups => views::setups::show(&mut self.state, ui),
+            Nav::Results => views::results::show(&mut self.state, ui),
         });
 
         if self.state.scanning || self.state.install_busy {

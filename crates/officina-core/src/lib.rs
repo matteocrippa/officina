@@ -16,6 +16,7 @@ pub mod launch;
 pub mod mods;
 pub mod paths;
 pub mod race;
+pub mod results;
 pub mod settings;
 pub mod setup;
 pub mod setups;

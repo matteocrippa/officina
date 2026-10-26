@@ -41,6 +41,7 @@ pub enum Nav {
     Settings,
     About,
     Setups,
+    Results,
 }
 
 pub struct AppState {

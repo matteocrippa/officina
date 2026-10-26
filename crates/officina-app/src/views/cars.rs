@@ -30,6 +30,7 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
     let mut uninstall_target: Option<std::path::PathBuf> = None;
     let mut disable_target: Option<std::path::PathBuf> = None;
     let mut enable_target: Option<String> = None;
+    let mut delete_skin_target: Option<std::path::PathBuf> = None;
 
     ui.columns(2, |cols| {
         cols[0].vertical(|ui| {
@@ -139,6 +140,10 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
                                             ui.small(format!("number: {n}"));
                                         }
                                     });
+                                    let skin_dir = skin.dir.clone();
+                                    if ui.button("Delete skin").clicked() {
+                                        delete_skin_target = Some(skin_dir);
+                                    }
                                 });
                             }
                         });
@@ -180,6 +185,15 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
         }
     }
 
+    if let Some(p) = delete_skin_target {
+        match officina_core::trash::move_to_trash(&p) {
+            Ok(_) => {
+                state.status = "Skin moved to trash.".into();
+                state.trigger_scan();
+            }
+            Err(e) => state.status = format!("Delete failed: {e}"),
+        }
+    }
     if let Some(p) = uninstall_target {
         match officina_core::trash::move_to_trash(&p) {
             Ok(_) => {
