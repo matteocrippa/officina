@@ -106,6 +106,11 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
     let diag = officina_core::setup::diagnose(&state.settings);
     let check = |ok: bool| if ok { "✅" } else { "❌" };
     ui.label(format!(
+        "Distro: {}{}",
+        diag.distro,
+        if diag.bazzite { " (Bazzite)" } else { "" }
+    ));
+    ui.label(format!(
         "{} Steam roots: {}",
         check(!diag.steam_roots.is_empty()),
         diag.steam_roots.len()
@@ -174,8 +179,8 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
                 .arg("https://github.com/GloriousEggroll/proton-ge-custom/releases")
                 .spawn();
         }
-        ui.small("Or run the upstream Linux setup script:");
-        ui.monospace(officina_core::setup::linux_setup_command());
+        ui.small("Install hint:");
+        ui.monospace(officina_core::setup::proton_ge_install_hint(diag.bazzite));
     }
     if diag.csp.is_none() && diag.ac_root.is_some() {
         ui.small("CSP not installed. Use the Patches tab to install it.");

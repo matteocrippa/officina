@@ -17,6 +17,8 @@ pub struct Diagnostics {
     pub proton_ge: Vec<PathBuf>,
     pub csp: Option<String>,
     pub dxvk: bool,
+    pub bazzite: bool,
+    pub distro: String,
 }
 
 pub fn diagnose(settings: &Settings) -> Diagnostics {
@@ -34,6 +36,7 @@ pub fn diagnose(settings: &Settings) -> Diagnostics {
     let proton_ge = find_proton_ge(&steam_roots);
     let csp = ac_root.as_ref().and_then(|r| csp_installed(r));
     let dxvk = dxvk_present(&steam_roots, compatdata.as_deref());
+    let (bazzite, distro) = detect_distro();
     Diagnostics {
         steam_roots,
         ac_root,
@@ -43,6 +46,8 @@ pub fn diagnose(settings: &Settings) -> Diagnostics {
         proton_ge,
         csp,
         dxvk,
+        bazzite,
+        distro,
     }
 }
 
@@ -112,6 +117,41 @@ fn dxvk_present(steam_roots: &[PathBuf], compatdata: Option<&Path>) -> bool {
 
 pub fn linux_setup_command() -> String {
     "curl -Os https://raw.githubusercontent.com/sihawido/assettocorsa-linux-setup/main/assettocorsa-linux-setup.sh && bash assettocorsa-linux-setup.sh".to_string()
+}
+
+pub fn proton_ge_install_hint(bazzite: bool) -> String {
+    if bazzite {
+        "Run: ujust install-proton-ge  (Bazzite helper)".to_string()
+    } else {
+        linux_setup_command()
+    }
+}
+
+fn detect_distro() -> (bool, String) {
+    let text = std::fs::read_to_string("/etc/os-release").unwrap_or_default();
+    let mut name = String::new();
+    let mut bazzite = false;
+    for line in text.lines() {
+        if let Some(v) = line.strip_prefix("NAME=") {
+            name = v.trim_matches('"').to_string();
+        }
+        if line.to_lowercase().contains("bazzite") {
+            bazzite = true;
+        }
+        if let Some(v) = line.strip_prefix("ID=") {
+            let id = v.trim_matches('"').to_lowercase();
+            if id == "bazzite" {
+                bazzite = true;
+            }
+            if name.is_empty() {
+                name = id;
+            }
+        }
+    }
+    if name.is_empty() {
+        name = "unknown".to_string();
+    }
+    (bazzite, name)
 }
 
 #[cfg(test)]

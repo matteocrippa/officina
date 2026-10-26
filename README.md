@@ -37,6 +37,8 @@ cargo build --release -p officina-app
 
 Deps (Debian/Ubuntu): `build-essential pkg-config libxkbcommon-dev libwayland-dev libx11-dev libfontconfig-dev libvulkan-dev`
 
+**Bazzite / immutable distros:** prefer the prebuilt release binary (install.sh downloads it automatically). Building from source requires a toolbox/distrobox container with the dev packages; system packages can't be installed on the host. Bazzite users can install Proton-GE via `ujust install-proton-ge`.
+
 ## ⌨️ CLI
 
 ```sh
