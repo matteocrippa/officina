@@ -12,6 +12,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config libxkbcommon-dev libwayland-dev \
+            libx11-dev libfontconfig-dev libvulkan-dev libudev-dev
       - name: Build release
         run: cargo build --release -p officina-app
       - name: Package

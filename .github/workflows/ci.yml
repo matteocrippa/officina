@@ -39,28 +39,3 @@ jobs:
             officina-linux-x86_64.tar.gz
             officina-linux-x86_64.tar.gz.sha256
 
-  release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential pkg-config libxkbcommon-dev libwayland-dev \
-            libx11-dev libfontconfig-dev libvulkan-dev libudev-dev
-      - name: Build release binary
-        run: cargo build --workspace --release -p officina-app
-      - name: Package binary
-        run: |
-          tar -czf officina-linux-x86_64.tar.gz -C target/release officina
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: officina-linux-x86_64.tar.gz
-          generate_release_notes: true
