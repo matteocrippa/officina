@@ -1,6 +1,5 @@
 //! Scanning installed cars, tracks and weather.
 
-use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -420,18 +419,6 @@ pub fn spec_label(key: &str) -> &str {
         "range" => "Range",
         other => other,
     }
-}
-
-pub fn brands(cars: &[Car]) -> BTreeMap<String, usize> {
-    let mut groups = BTreeMap::<String, (String, usize)>::new();
-    for car in cars {
-        let name = car.brand_name();
-        let group = groups
-            .entry(name.to_lowercase())
-            .or_insert_with(|| (name.to_owned(), 0));
-        group.1 += 1;
-    }
-    groups.into_values().collect()
 }
 
 #[cfg(test)]

@@ -204,10 +204,6 @@ pub struct Progress {
     pub completed_series: BTreeSet<String>,
 }
 
-pub fn import_notice() -> &'static str {
-    "Career save is imported on first use. Special-event medals earned here are saved locally; existing Steam medals are not synchronized."
-}
-
 impl Progress {
     pub fn load(root: &Path) -> Result<Self> {
         let mut p = Self::default();
@@ -664,50 +660,6 @@ fn load_event(path: &Path, id: &str, event_dir: &Path) -> Result<Event> {
         goals,
         ini,
     })
-}
-
-pub fn goal_label(goal: &Goal) -> String {
-    let kind = goal.kind.to_uppercase();
-    match kind.as_str() {
-        "TIME" => {
-            let total_ms = goal.objective.round() as i64;
-            if total_ms <= 0 {
-                return "0:00.000".to_string();
-            }
-            let minutes = total_ms / 60_000;
-            let rem_ms = total_ms % 60_000;
-            let seconds = rem_ms / 1_000;
-            let ms = rem_ms % 1_000;
-            format!("{}:{:02}.{:03}", minutes, seconds, ms)
-        }
-        "POSITION" => {
-            let p = goal.objective as u32;
-            let suffix = match p % 10 {
-                1 if p % 100 != 11 => "st",
-                2 if p % 100 != 12 => "nd",
-                3 if p % 100 != 13 => "rd",
-                _ => "th",
-            };
-            format!("Finish {}{}", p, suffix)
-        }
-        "POINTS" => format!("{:.0} pts", goal.objective),
-        "WINS" => format!("{:.0} wins", goal.objective),
-        "AI" => format!("{:.0}% AI", goal.objective),
-        _ => format!("{} {:.0}", goal.kind, goal.objective),
-    }
-}
-
-pub fn mode_label(kind: u32) -> &'static str {
-    match kind {
-        1 => "Practice",
-        2 => "Qualifying",
-        3 => "Race",
-        4 => "Hotlap",
-        5 => "Time Attack",
-        6 => "Drift",
-        7 => "Drag",
-        _ => "Special",
-    }
 }
 
 pub fn available(root: &Path, event: &Event, series: Option<&Series>) -> Result<()> {

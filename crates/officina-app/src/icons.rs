@@ -45,8 +45,3 @@ pub fn nav(n: Nav) -> &'static str {
 }
 
 pub const RESCAN: &str = "↻";
-
-#[allow(dead_code)]
-pub fn supported(ctx: &egui::Context, s: &str) -> bool {
-    ctx.fonts(|f| f.has_glyphs(&egui::FontId::default(), s))
-}
