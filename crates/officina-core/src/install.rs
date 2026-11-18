@@ -331,6 +331,24 @@ pub fn extract_to_temp(archive: &Path, dest: &Path) -> Result<()> {
         .map(|e| e.to_string_lossy().to_lowercase())
         .unwrap_or_default();
     match ext.as_str() {
+        "zip" => {
+            let mut zip = zip::ZipArchive::new(File::open(archive).context("opening zip")?)
+                .context("reading zip")?;
+            for i in 0..zip.len() {
+                let mut f = zip.by_index(i)?;
+                let name = archive_name(f.name())?;
+                let out = dest.join(&name);
+                if f.is_dir() {
+                    fs::create_dir_all(&out)?;
+                } else {
+                    if let Some(p) = out.parent() {
+                        fs::create_dir_all(p)?;
+                    }
+                    io::copy(&mut f, &mut File::create(&out)?)?;
+                }
+            }
+            Ok(())
+        }
         "7z" => {
             sevenz_rust::decompress_file(archive, dest)
                 .map_err(|e| anyhow::anyhow!("7z extract failed: {e}"))?;
