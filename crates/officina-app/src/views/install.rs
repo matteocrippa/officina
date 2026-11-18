@@ -68,4 +68,16 @@ pub fn show(state: &mut AppState, ui: &mut Ui, ctx: &egui::Context) {
             ui.small(format!("    -> {}", it.target.display()));
         }
     }
+
+    ui.separator();
+    ui.group(|ui| {
+        ui.label("GitHub tools");
+        ui.small("Install community tools (e.g. Paintshop, Helicorsa) from GitHub releases or a direct archive URL.");
+        ui.text_edit_singleline(&mut state.tool_repo);
+        if ui.button("Install latest release").clicked() && !state.install_busy {
+            state.install_tool(state.tool_repo.clone());
+        }
+    });
+
+    let _ = ctx;
 }

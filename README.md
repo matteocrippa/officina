@@ -48,6 +48,7 @@ Deps (Debian/Ubuntu): `build-essential pkg-config libxkbcommon-dev libwayland-de
 officina where
 officina list cars|tracks|weather|events
 officina install mod.zip
+officina install-tool <source>      # e.g. ac-custom-shaders-patch/app-paintshop or https://.../tool.zip
 officina check
 officina acd unpack data.acd [out_dir]
 officina acd pack data_dir [data.acd]

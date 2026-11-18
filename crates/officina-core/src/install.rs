@@ -1,4 +1,4 @@
-//! Installing cars and tracks from mod archives.
+//! Installing cars, tracks and community tools from mod archives.
 
 use std::collections::BTreeSet;
 use std::fs::{self, File};
@@ -13,6 +13,7 @@ pub enum Kind {
     Car,
     Track,
     Generic,
+    Tool,
 }
 
 impl Kind {
@@ -21,6 +22,7 @@ impl Kind {
             Kind::Car => "cars",
             Kind::Track => "tracks",
             Kind::Generic => "",
+            Kind::Tool => "apps",
         }
     }
     pub fn label(self) -> &'static str {
@@ -28,6 +30,7 @@ impl Kind {
             Kind::Car => "Car",
             Kind::Track => "Track",
             Kind::Generic => "Generic/Patch",
+            Kind::Tool => "Tool",
         }
     }
 }
@@ -244,6 +247,11 @@ pub fn plan(archive: &Path, ac_root: &Path) -> Result<Vec<Item>> {
         })
         .collect::<Result<Vec<_>>>()?;
     if items.is_empty() {
+        // Fall back to tool extraction into the AC root (apps/<...>, CSP, Sol, Pure, ...).
+        let tools = tool_items(&names, ac_root)?;
+        if !tools.is_empty() {
+            return Ok(tools);
+        }
         // Fall back to generic extraction into the AC root (CSP, Sol, Pure, ...).
         return Ok(vec![Item {
             exists: ac_root.exists(),
@@ -252,6 +260,39 @@ pub fn plan(archive: &Path, ac_root: &Path) -> Result<Vec<Item>> {
             prefix: String::new(),
             target: ac_root.to_path_buf(),
         }]);
+    }
+    Ok(items)
+}
+
+/// Plans installs for community tools (e.g. Paintshop) found under `apps/...`
+/// in the archive: one item per app folder, installed into the AC root.
+fn tool_items(names: &[String], ac_root: &Path) -> Result<Vec<Item>> {
+    let mut roots = BTreeSet::<String>::new();
+    for name in names {
+        let segs: Vec<&str> = name.split('/').filter(|s| !s.is_empty()).collect();
+        if let Some(pos) = segs.iter().position(|s| s.eq_ignore_ascii_case("apps")) {
+            let mut root_segs = segs[pos..].to_vec();
+            if !name.ends_with('/') && root_segs.len() > 1 {
+                // File entries install into their containing folder.
+                root_segs.pop();
+            }
+            if root_segs.is_empty() {
+                continue;
+            }
+            roots.insert(root_segs.join("/"));
+        }
+    }
+    let mut items = Vec::new();
+    for root in roots {
+        let id = root.rsplit('/').next().unwrap_or(&root).to_string();
+        let target = ac_root.join(&root);
+        items.push(Item {
+            kind: Kind::Tool,
+            id,
+            prefix: root.clone(),
+            exists: target.exists(),
+            target,
+        });
     }
     Ok(items)
 }
@@ -280,6 +321,34 @@ pub fn install(archive: &Path, items: &[Item]) -> Result<usize> {
         }
         written += copy_dir(&src_root, &item.target)?;
     }
+    Ok(written)
+}
+
+/// Installs a community tool from a GitHub repo or a direct archive URL into
+/// the AC root (`apps/...`).
+pub fn install_tool(ac_root: &Path, source: &str) -> Result<usize> {
+    let url = if source.starts_with("http://") || source.starts_with("https://") {
+        source.to_string()
+    } else {
+        crate::github::latest_release_asset_url(source)?
+    };
+    install_tool_from_url(ac_root, &url).context("downloading tool")
+}
+
+/// Installs a community tool from a direct archive URL into the AC root
+/// (`apps/...`).
+fn install_tool_from_url(ac_root: &Path, url: &str) -> Result<usize> {
+    let tmp = tempfile::tempdir().context("creating temp dir")?;
+    let archive = tmp.path().join("tool.zip");
+    let status = Command::new("curl")
+        .args(["-sL", "-o", archive.to_str().unwrap(), url])
+        .status()
+        .context("running curl")?;
+    if !status.success() {
+        bail!("curl download failed");
+    }
+    let items = plan(&archive, ac_root).context("planning tool install")?;
+    let written = install(&archive, &items).context("installing tool")?;
     Ok(written)
 }
 
@@ -440,4 +509,34 @@ fn copy_dir(src: &Path, dst: &Path) -> Result<usize> {
         }
     }
     Ok(written)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn plan_installs_tool_from_apps_archive() {
+        let tmp = tempfile::tempdir().unwrap();
+        let ac_root = tmp.path().join("ac");
+        std::fs::create_dir_all(ac_root.join("content/cars")).unwrap();
+
+        let archive = tmp.path().join("Paintshop.zip");
+        {
+            let file = std::fs::File::create(&archive).unwrap();
+            let mut zip = zip::ZipWriter::new(file);
+            let options = zip::write::SimpleFileOptions::default();
+            zip.add_directory("apps/lua/Paintshop", options).unwrap();
+            zip.start_file("apps/lua/Paintshop/Paintshop.lua", options)
+                .unwrap();
+            zip.finish().unwrap();
+        }
+
+        let items = plan(&archive, &ac_root).unwrap();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].kind, Kind::Tool);
+        assert_eq!(items[0].id, "Paintshop");
+        assert_eq!(items[0].prefix, "apps/lua/Paintshop");
+        assert_eq!(items[0].target, ac_root.join("apps/lua/Paintshop"));
+    }
 }

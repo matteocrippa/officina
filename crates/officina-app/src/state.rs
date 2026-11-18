@@ -16,6 +16,7 @@ pub enum AppMsg {
     InstallDone {
         written: usize,
     },
+    ToolDone(String),
     CareerLoaded(
         officina_core::events::Catalog,
         officina_core::events::Progress,
@@ -62,6 +63,9 @@ pub struct AppState {
     pub install_plan: Option<Vec<install::Item>>,
     pub install_busy: bool,
     pub install_status: String,
+
+    // GitHub tool install state
+    pub tool_repo: String,
 
     // Quick drive state
     pub qd_car: String,
@@ -127,6 +131,7 @@ impl AppState {
             install_plan: None,
             install_busy: false,
             install_status: String::new(),
+            tool_repo: "ac-custom-shaders-patch/app-paintshop".into(),
             qd_car: String::new(),
             qd_skin: String::new(),
             qd_track: String::new(),
@@ -277,6 +282,27 @@ impl AppState {
             None => {
                 let _ = tx.send(AppMsg::Error("Assetto Corsa not found".into()));
             }
+        });
+    }
+
+    pub fn install_tool(&mut self, source: String) {
+        if self.install_busy {
+            return;
+        }
+        self.tool_repo = source.clone();
+        self.install_busy = true;
+        self.install_status = "Downloading tool...".into();
+        let tx = self.tx.clone();
+        let ac_root = self.settings.ac_root();
+        std::thread::spawn(move || {
+            let msg = match ac_root {
+                Some(root) => match officina_core::install::install_tool(&root, &source) {
+                    Ok(written) => format!("Tool installed: {written} file(s)."),
+                    Err(e) => format!("Tool install failed: {e:#}"),
+                },
+                None => "AC root not found".into(),
+            };
+            let _ = tx.send(AppMsg::ToolDone(msg));
         });
     }
 

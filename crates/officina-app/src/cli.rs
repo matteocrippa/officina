@@ -143,6 +143,15 @@ pub fn install_cmd(archive: PathBuf) -> Result<()> {
     Ok(())
 }
 
+pub fn install_tool_cmd(repo: &str) -> Result<()> {
+    let s = Settings::load();
+    let ac_root = s.ac_root().context("Assetto Corsa install not found")?;
+    let written =
+        officina_core::install::install_tool(&ac_root, repo).context("installing tool")?;
+    println!("Installed tool ({} file(s)).", written);
+    Ok(())
+}
+
 pub fn check_cmd() -> Result<()> {
     let s = Settings::load();
     let ac_root = s.ac_root().context("Assetto Corsa install not found")?;

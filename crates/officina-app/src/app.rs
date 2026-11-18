@@ -147,6 +147,11 @@ impl eframe::App for App {
                     self.state.install_status = format!("Installed {} file(s).", written);
                     self.state.trigger_scan();
                 }
+                AppMsg::ToolDone(msg) => {
+                    self.state.install_busy = false;
+                    self.state.install_status = msg.clone();
+                    self.state.trigger_scan();
+                }
                 AppMsg::CareerLoaded(cat, prog) => {
                     self.state.career_catalog = Some(cat);
                     self.state.career_progress = Some(prog);

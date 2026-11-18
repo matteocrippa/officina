@@ -9,6 +9,7 @@ pub mod content;
 pub mod csp_config;
 pub mod events;
 pub mod game_cfg;
+pub mod github;
 pub mod ini;
 pub mod install;
 pub mod json;

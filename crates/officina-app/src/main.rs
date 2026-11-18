@@ -33,6 +33,11 @@ enum Commands {
     },
     /// Install a mod archive.
     Install { archive: PathBuf },
+    /// Install a community tool from a GitHub repo or a direct archive URL.
+    InstallTool {
+        /// GitHub repo or archive URL (e.g. ac-custom-shaders-patch/app-paintshop, or https://.../tool.zip).
+        repo: String,
+    },
     /// Validate installed content (missing files, AI lines, liveries).
     Check,
     /// Pack/unpack data.acd files.
@@ -62,6 +67,7 @@ fn main() -> anyhow::Result<()> {
         Some(Commands::Where) => cli::where_cmd(),
         Some(Commands::List { kind }) => cli::list_cmd(&kind),
         Some(Commands::Install { archive }) => cli::install_cmd(archive),
+        Some(Commands::InstallTool { repo }) => cli::install_tool_cmd(&repo),
         Some(Commands::Check) => cli::check_cmd(),
         Some(Commands::Acd { action }) => match action {
             AcdAction::Unpack { file, out } => cli::acd_unpack_cmd(file, out),
