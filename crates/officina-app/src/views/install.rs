@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use egui::Ui;
 
+use officina_core::install::Kind;
+
 use crate::icons;
 use crate::state::AppState;
 
@@ -24,6 +26,11 @@ pub fn show(state: &mut AppState, ui: &mut Ui, ctx: &egui::Context) {
         state.plan_install(dropped[0].clone());
     }
 
+    let needs_confirm = state.install_plan.as_ref().is_some_and(|plan| {
+        plan.iter()
+            .any(|it| it.exists || matches!(it.kind, Kind::Generic))
+    });
+
     ui.horizontal(|ui| {
         if ui.button("Pick file...").clicked()
             && !state.install_busy
@@ -36,6 +43,7 @@ pub fn show(state: &mut AppState, ui: &mut Ui, ctx: &egui::Context) {
         if state.install_archive.is_some()
             && ui.button("Install now").clicked()
             && !state.install_busy
+            && (!needs_confirm || state.confirm_overwrite)
         {
             state.run_install();
         }
@@ -43,6 +51,7 @@ pub fn show(state: &mut AppState, ui: &mut Ui, ctx: &egui::Context) {
             state.install_archive = None;
             state.install_plan = None;
             state.install_status.clear();
+            state.confirm_overwrite = false;
         }
     });
 
@@ -66,6 +75,16 @@ pub fn show(state: &mut AppState, ui: &mut Ui, ctx: &egui::Context) {
                 it.exists
             ));
             ui.small(format!("    -> {}", it.target.display()));
+        }
+        if needs_confirm {
+            ui.colored_label(
+                egui::Color32::YELLOW,
+                "This plan overwrites existing files or writes directly into the AC root.",
+            );
+            ui.checkbox(
+                &mut state.confirm_overwrite,
+                "I understand; overwrite those files",
+            );
         }
     }
 

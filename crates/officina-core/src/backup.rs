@@ -4,7 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 
 pub fn backup_root() -> Option<PathBuf> {
     dirs::config_dir().map(|d| d.join("officina").join("backups"))
@@ -23,7 +23,7 @@ pub fn create_backup(ac_root: &Path) -> Result<PathBuf> {
     let dest = root.join(ts.to_string());
     fs::create_dir_all(&dest)?;
     if src.is_dir() {
-        copy_dir(&src, &dest)?;
+        crate::install::copy_dir(&src, &dest)?;
     }
     Ok(dest)
 }
@@ -49,21 +49,6 @@ pub fn restore_backup(backup_path: &Path, ac_root: &Path) -> Result<()> {
         .map(|d| d.join("cfg"))
         .ok_or_else(|| anyhow::anyhow!("Documents/Assetto Corsa not found"))?;
     fs::create_dir_all(&dst)?;
-    copy_dir(backup_path, &dst)?;
-    Ok(())
-}
-
-fn copy_dir(src: &Path, dst: &Path) -> Result<()> {
-    fs::create_dir_all(dst)?;
-    for e in fs::read_dir(src)? {
-        let e = e?;
-        let sp = e.path();
-        let dp = dst.join(e.file_name());
-        if sp.is_dir() {
-            copy_dir(&sp, &dp)?;
-        } else {
-            fs::copy(&sp, &dp).with_context(|| format!("copying {}", sp.display()))?;
-        }
-    }
+    crate::install::copy_dir(backup_path, &dst)?;
     Ok(())
 }

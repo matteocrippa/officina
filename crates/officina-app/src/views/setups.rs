@@ -1,7 +1,7 @@
 use egui::Ui;
 use std::path::PathBuf;
 
-use crate::state::AppState;
+use crate::state::{AppState, StatusTarget};
 
 pub fn show(state: &mut AppState, ui: &mut Ui) {
     ui.heading("Car Setups");
@@ -65,10 +65,12 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
     }
 
     if let Some(p) = to_delete {
-        match officina_core::trash::move_to_trash(&p) {
-            Ok(_) => state.status = "Moved to trash.".into(),
-            Err(e) => state.status = format!("Delete failed: {e}"),
-        }
+        state.run_status_task(StatusTarget::Setups, move || {
+            match officina_core::trash::move_to_trash(&p) {
+                Ok(_) => "Moved to trash.".into(),
+                Err(e) => format!("Delete failed: {e}"),
+            }
+        });
     }
 
     if let Some(p) = to_view

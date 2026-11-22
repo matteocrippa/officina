@@ -1,4 +1,6 @@
 #!/bin/sh
+# Installs an already-built local binary. Called by `sh install.sh --local`
+# from the repository root; assumes `cargo build --release` has been run.
 set -e
 PREFIX="${PREFIX:-$HOME/.local}"
 install -Dm755 target/release/officina "$PREFIX/bin/officina"

@@ -125,35 +125,6 @@ pub fn parse_library_paths(vdf: &str) -> Vec<PathBuf> {
         .collect()
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parse_library_paths_extracts() {
-        let line = "\t\t\"path\"\t\t\"/home/user/.steam/steam\"";
-        let paths = parse_library_paths(line);
-        assert_eq!(paths.len(), 1);
-        assert_eq!(paths[0], PathBuf::from("/home/user/.steam/steam"));
-    }
-
-    #[test]
-    fn parse_library_paths_empty() {
-        assert!(parse_library_paths("").is_empty());
-        assert!(parse_library_paths("no paths here").is_empty());
-    }
-
-    #[test]
-    fn is_ac_root_requires_files() {
-        let tmp = std::env::temp_dir().join("officina_test_ac");
-        let _ = std::fs::remove_dir_all(&tmp);
-        std::fs::create_dir_all(tmp.join("content/cars")).unwrap();
-        std::fs::write(tmp.join("acs.exe"), b"").unwrap();
-        assert!(is_ac_root(&tmp));
-        let _ = std::fs::remove_dir_all(&tmp);
-    }
-}
-
 pub fn is_ac_root(p: &Path) -> bool {
     p.join("acs.exe").is_file() && p.join("content").join("cars").is_dir()
 }
@@ -194,4 +165,32 @@ pub fn documents_ac_dir(ac_root: &Path) -> Option<PathBuf> {
 
 pub fn race_ini_path(ac_root: &Path) -> Option<PathBuf> {
     Some(documents_ac_dir(ac_root)?.join("cfg").join("race.ini"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_library_paths_extracts() {
+        let line = "\t\t\"path\"\t\t\"/home/user/.steam/steam\"";
+        let paths = parse_library_paths(line);
+        assert_eq!(paths.len(), 1);
+        assert_eq!(paths[0], PathBuf::from("/home/user/.steam/steam"));
+    }
+
+    #[test]
+    fn parse_library_paths_empty() {
+        assert!(parse_library_paths("").is_empty());
+        assert!(parse_library_paths("no paths here").is_empty());
+    }
+
+    #[test]
+    fn is_ac_root_requires_files() {
+        let tmp = tempfile::tempdir().unwrap();
+        assert!(!is_ac_root(tmp.path()));
+        std::fs::create_dir_all(tmp.path().join("content/cars")).unwrap();
+        std::fs::write(tmp.path().join("acs.exe"), b"").unwrap();
+        assert!(is_ac_root(tmp.path()));
+    }
 }

@@ -172,10 +172,8 @@ mod tests {
 
     #[test]
     fn parse_result_lenient() {
-        let dir = std::env::temp_dir().join("officina_res_test");
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        let path = dir.join("r.json");
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("r.json");
         let json = r#"{"track":"ks_monza","car":"ferrari","playerName":"P","bestLap":91.2,"laps":[{"lapTime":92.0,"valid":true},{"lapTime":91.2,"valid":true,"sectors":[30.0,31.0,30.2]}]}"#;
         std::fs::write(&path, json).unwrap();
         let r = parse_result(&path).unwrap();
@@ -183,6 +181,5 @@ mod tests {
         assert_eq!(r.car, "ferrari");
         assert_eq!(r.laps.len(), 2);
         assert_eq!(r.best_lap, Some(91.2));
-        let _ = std::fs::remove_dir_all(&dir);
     }
 }

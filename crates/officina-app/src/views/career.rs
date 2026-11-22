@@ -1,12 +1,15 @@
+use std::time::SystemTime;
+
 use egui::Ui;
 use officina_core::events;
 use officina_core::launch::{self, LaunchOptions};
 
-use crate::state::AppState;
+use crate::state::{AppState, StatusTarget};
 
 pub fn show(state: &mut AppState, ui: &mut Ui) {
     ui.heading("Career");
     state.load_career();
+    state.try_auto_import_career_result();
 
     if state.career_loading {
         ui.spinner();
@@ -41,6 +44,7 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
         }
     }
 
+    let mut pending_import: Option<String> = None;
     egui::ScrollArea::vertical().show(ui, |ui| {
         for series in &catalog.series {
             let unlocked = series.unlocked(&progress);
@@ -78,6 +82,9 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
                         if unlocked && ui.button("Launch").clicked() {
                             state.career_pending = Some((ev.id.clone(), Some(series.id.clone())));
                         }
+                        if ui.button("Import result").clicked() {
+                            pending_import = Some(ev.id.clone());
+                        }
                     });
                 }
             });
@@ -95,9 +102,16 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
                 if ui.button("Launch").clicked() {
                     state.career_pending = Some((ev.id.clone(), None));
                 }
+                if ui.button("Import result").clicked() {
+                    pending_import = Some(ev.id.clone());
+                }
             });
         }
     });
+
+    if let Some(id) = pending_import {
+        state.import_career_result(id);
+    }
 
     // Handle pending launch (deferred to avoid borrow conflicts in scroll closure)
     if let Some((eid, _sid)) = state.career_pending.take() {
@@ -115,27 +129,28 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
                 })
         });
         if let Some((series, event)) = found {
-            let series_ref = series.as_ref();
             if let Some(root) = ac_root.clone() {
-                if let Err(e) = events::available(&root, &event, series_ref) {
-                    state.career_status = format!("unavailable: {e:#}");
-                } else {
+                let proton = state.settings.proton.clone();
+                state.career_status = "Preparing event...".into();
+                state.career_last_launched = Some(event.id.clone());
+                state.career_launch_time = Some(SystemTime::now());
+                state.career_auto_import_pending = true;
+                state.run_status_task(StatusTarget::Career, move || {
+                    let series_ref = series.as_ref();
+                    if let Err(e) = events::available(&root, &event, series_ref) {
+                        return format!("unavailable: {e:#}");
+                    }
                     match events::prepare(&root, &event, series_ref, 0, "Player", "ITA") {
                         Ok(path) => {
-                            state.career_status = format!("race.ini written: {}", path.display())
+                            let opts = LaunchOptions { proton };
+                            match launch::start(&root, &opts) {
+                                Ok(_) => format!("Launched ({}).", path.display()),
+                                Err(e) => format!("launch failed: {e:#}"),
+                            }
                         }
-                        Err(e) => {
-                            state.career_status = format!("prepare failed: {e:#}");
-                        }
+                        Err(e) => format!("prepare failed: {e:#}"),
                     }
-                    let opts = LaunchOptions {
-                        proton: state.settings.proton.clone(),
-                    };
-                    match launch::start(&root, &opts) {
-                        Ok(_) => state.career_status = "Launched!".into(),
-                        Err(e) => state.career_status = format!("launch failed: {e:#}"),
-                    }
-                }
+                });
             } else {
                 state.career_status = "AC root not found".into();
             }

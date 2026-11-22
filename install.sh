@@ -1,9 +1,17 @@
 #!/usr/bin/env sh
-# Officina installer. Usage:  curl -fsSL https://raw.githubusercontent.com/matteocrippa/officina/main/install.sh | sh
+# Officina installer: downloads a verified release binary, or builds from
+# source when no release is available.
+# Usage:  curl -fsSL https://raw.githubusercontent.com/matteocrippa/officina/main/install.sh | sh
+# Local build:  sh install.sh --local
 set -eu
 
-REPO="matteocrippa/officina"
 PREFIX="${PREFIX:-$HOME/.local}"
+if [ "${1:-}" = "--local" ]; then
+    SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+    PREFIX="$PREFIX" exec sh "$SCRIPT_DIR/packaging/install.sh"
+fi
+
+REPO="matteocrippa/officina"
 BIN_DIR="$PREFIX/bin"
 APP_DIR="$PREFIX/share/applications"
 ICON_DIR="$PREFIX/share/icons/hicolor/512x512/apps"
@@ -18,12 +26,15 @@ if command -v curl >/dev/null 2>&1; then
     if [ -n "$LATEST" ]; then
         URL="https://github.com/$REPO/releases/download/$LATEST/$ASSET"
         TMP=$(mktemp -d)
-        if curl -fsSL "$URL" -o "$TMP/$ASSET"; then
-            tar -xzf "$TMP/$ASSET" -C "$TMP"
-            if [ -f "$TMP/officina" ]; then
-                install -m 0755 "$TMP/officina" "$BIN_DIR/officina"
-                download_ok=1
-            fi
+        if curl -fsSL "$URL" -o "$TMP/$ASSET" \
+            && curl -fsSL "$URL.sha256" -o "$TMP/$ASSET.sha256" \
+            && (cd "$TMP" && sha256sum -c "$ASSET.sha256" >/dev/null 2>&1) \
+            && tar -xzf "$TMP/$ASSET" -C "$TMP" \
+            && [ -f "$TMP/officina" ]; then
+            install -m 0755 "$TMP/officina" "$BIN_DIR/officina"
+            download_ok=1
+        else
+            echo "Release download or checksum verification failed; falling back to source." >&2
         fi
         rm -rf "$TMP"
     fi

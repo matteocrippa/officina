@@ -295,7 +295,7 @@ fn launch_quick_drive(state: &mut AppState) {
     state.settings.last_track = Some(track_id.clone());
     state.settings.last_skin = Some(skin_id.clone());
     state.settings.last_session = Some(qd.clone());
-    let _ = state.settings.save();
+    state.save_settings();
 
     // Write race.ini and launch.
     match launch::write_race_ini(&ac_root, &qd) {

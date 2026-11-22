@@ -38,29 +38,51 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
     });
     let selected_tab = Tab::ALL[state.game_settings_tab];
 
-    let all = game_cfg::settings();
-    // Group settings for selected tab, preserving group order.
-    let mut groups: Vec<(&'static str, Vec<&Setting>)> = Vec::new();
-    for s in &all {
-        if s.tab != selected_tab {
-            continue;
+    if selected_tab == Tab::Keys {
+        let keys = gc.entries("controls.ini", "KEYBOARD");
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            ui.label("Keyboard bindings from controls.ini (values are Assetto Corsa key codes).");
+            if keys.is_empty() {
+                ui.label("No keyboard bindings found in controls.ini.");
+            }
+            for (key, _) in &keys {
+                let mut value = gc
+                    .get("controls.ini", "KEYBOARD", key)
+                    .unwrap_or("")
+                    .to_string();
+                ui.horizontal(|ui| {
+                    ui.label(key);
+                    if ui.text_edit_singleline(&mut value).changed() {
+                        gc.set("controls.ini", "KEYBOARD", key, &value);
+                    }
+                });
+            }
+        });
+    } else {
+        let all = game_cfg::settings();
+        // Group settings for selected tab, preserving group order.
+        let mut groups: Vec<(&'static str, Vec<&Setting>)> = Vec::new();
+        for s in &all {
+            if s.tab != selected_tab {
+                continue;
+            }
+            if let Some(g) = groups.iter_mut().find(|(name, _)| *name == s.group) {
+                g.1.push(s);
+            } else {
+                groups.push((s.group, vec![s]));
+            }
         }
-        if let Some(g) = groups.iter_mut().find(|(name, _)| *name == s.group) {
-            g.1.push(s);
-        } else {
-            groups.push((s.group, vec![s]));
-        }
-    }
 
-    egui::ScrollArea::vertical().show(ui, |ui| {
-        for (group, settings) in &groups {
-            ui.collapsing(*group, |ui| {
-                for s in settings {
-                    render_setting(gc, s, ui);
-                }
-            });
-        }
-    });
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            for (group, settings) in &groups {
+                ui.collapsing(*group, |ui| {
+                    for s in settings {
+                        render_setting(gc, s, ui);
+                    }
+                });
+            }
+        });
+    }
 
     ui.horizontal(|ui| {
         if ui.button("Save").clicked() {

@@ -1,26 +1,6 @@
-use std::path::Path;
-
 use egui::Ui;
 
 use crate::state::{AppMsg, AppState};
-
-fn csp_installed(ac_root: &Path) -> Option<String> {
-    let ext = ac_root.join("extension");
-    if !ext.is_dir() {
-        return None;
-    }
-    // Try common version files.
-    for rel in ["config/version", "version.txt", "VERSION"] {
-        let p = ext.join(rel);
-        if let Ok(t) = std::fs::read_to_string(&p) {
-            let t = t.trim();
-            if !t.is_empty() {
-                return Some(t.to_string());
-            }
-        }
-    }
-    Some("installed".to_string())
-}
 
 pub fn show(state: &mut AppState, ui: &mut Ui, ctx: &egui::Context) {
     ui.heading("Patches & Weather (CSP / Sol / Pure)");
@@ -30,7 +10,7 @@ pub fn show(state: &mut AppState, ui: &mut Ui, ctx: &egui::Context) {
     ui.group(|ui| {
         ui.label("Custom Shaders Patch (CSP)");
         match &ac_root {
-            Some(root) => match csp_installed(root) {
+            Some(root) => match officina_core::setup::csp_installed(root) {
                 Some(v) => ui.label(format!("Status: installed ({v})")),
                 None => ui.label("Status: not installed"),
             },
@@ -112,7 +92,7 @@ pub fn show(state: &mut AppState, ui: &mut Ui, ctx: &egui::Context) {
         "Auto-update CSP configs on startup",
     );
     if state.settings.auto_update_csp != prev {
-        let _ = state.settings.save();
+        state.save_settings();
     }
     ui.small("Tip: you can also drag-and-drop any archive onto the Install tab.");
     let _ = ctx;

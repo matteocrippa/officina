@@ -39,13 +39,7 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
     });
 
     if let Some(p) = uninstall_target {
-        match officina_core::trash::move_to_trash(&p) {
-            Ok(_) => {
-                state.status = "Moved to trash.".into();
-                state.trigger_scan();
-            }
-            Err(e) => state.status = format!("Uninstall failed: {e}"),
-        }
+        state.trash_path(p, "Moved to trash.");
     }
     if let Some(id) = disable_target
         && let Some(root) = state.settings.ac_root()

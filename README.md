@@ -35,6 +35,7 @@ Or build from source:
 
 ```sh
 cargo build --release -p officina-app
+sh install.sh --local    # optional: install the local build to ~/.local
 ./target/release/officina
 ```
 
@@ -47,8 +48,8 @@ Deps (Debian/Ubuntu): `build-essential pkg-config libxkbcommon-dev libwayland-de
 ```sh
 officina where
 officina list cars|tracks|weather|events
-officina install mod.zip
-officina install-tool <source>      # e.g. ac-custom-shaders-patch/app-paintshop or https://.../tool.zip
+officina install mod.zip            # --force to overwrite / install generic patches into the AC root
+officina install-tool <source>      # GitHub repo or .zip/.7z/.rar/.tar.gz URL
 officina check
 officina acd unpack data.acd [out_dir]
 officina acd pack data_dir [data.acd]

@@ -3,8 +3,26 @@ use std::path::PathBuf;
 use anyhow::{Context, Result};
 use officina_core::{content, install, launch, paths, settings::Settings, validate};
 
+fn load_settings() -> Settings {
+    let (s, warning) = Settings::load();
+    if let Some(w) = warning {
+        eprintln!("warning: {w}");
+    }
+    s
+}
+
+fn load_progress(ac_root: &std::path::Path) -> officina_core::events::Progress {
+    match officina_core::events::Progress::load(ac_root) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("warning: {e:#}");
+            officina_core::events::Progress::default()
+        }
+    }
+}
+
 pub fn where_cmd() -> Result<()> {
-    let s = Settings::load();
+    let s = load_settings();
     let ac_root = s.ac_root();
     println!(
         "AC root:        {}",
@@ -55,7 +73,7 @@ pub fn where_cmd() -> Result<()> {
 }
 
 pub fn list_cmd(kind: &str) -> Result<()> {
-    let s = Settings::load();
+    let s = load_settings();
     let ac_root = s.ac_root().context("Assetto Corsa install not found")?;
     match kind {
         "cars" => {
@@ -89,7 +107,7 @@ pub fn list_cmd(kind: &str) -> Result<()> {
         }
         "events" => {
             let catalog = officina_core::events::scan(&ac_root);
-            let progress = officina_core::events::Progress::load(&ac_root).unwrap_or_default();
+            let progress = load_progress(&ac_root);
             println!(
                 "{} series / {} special events",
                 catalog.series.len(),
@@ -124,8 +142,8 @@ pub fn list_cmd(kind: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn install_cmd(archive: PathBuf) -> Result<()> {
-    let s = Settings::load();
+pub fn install_cmd(archive: PathBuf, force: bool) -> Result<()> {
+    let s = load_settings();
     let ac_root = s.ac_root().context("Assetto Corsa install not found")?;
     let items = install::plan(&archive, &ac_root).context("planning install")?;
     println!("Planned {} item(s):", items.len());
@@ -138,13 +156,21 @@ pub fn install_cmd(archive: PathBuf) -> Result<()> {
             it.exists
         );
     }
-    let written = install::install(&archive, &items).context("installing")?;
+    let written = install::install_with_options(
+        &archive,
+        &items,
+        install::InstallOptions {
+            allow_overwrite: force,
+            allow_root_overwrite: force,
+        },
+    )
+    .context("installing")?;
     println!("Installed {} file(s).", written);
     Ok(())
 }
 
 pub fn install_tool_cmd(repo: &str) -> Result<()> {
-    let s = Settings::load();
+    let s = load_settings();
     let ac_root = s.ac_root().context("Assetto Corsa install not found")?;
     let written =
         officina_core::install::install_tool(&ac_root, repo).context("installing tool")?;
@@ -153,7 +179,7 @@ pub fn install_tool_cmd(repo: &str) -> Result<()> {
 }
 
 pub fn check_cmd() -> Result<()> {
-    let s = Settings::load();
+    let s = load_settings();
     let ac_root = s.ac_root().context("Assetto Corsa install not found")?;
     let issues = validate::check(&ac_root);
     if issues.is_empty() {

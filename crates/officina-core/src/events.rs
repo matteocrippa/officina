@@ -3,7 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result, anyhow, bail};
 use serde::{Deserialize, Serialize};
 
 use crate::content::{natural_cmp, scan_cars};
@@ -212,8 +212,20 @@ impl Progress {
             if json_path.exists() {
                 let bytes = fs::read(&json_path)
                     .with_context(|| format!("reading {}", json_path.display()))?;
-                return serde_json::from_slice(&bytes)
-                    .with_context(|| format!("invalid progress in {}", json_path.display()));
+                return serde_json::from_slice(&bytes).map_err(|e| {
+                    let detail = match crate::quarantine_corrupt(&json_path) {
+                        Some(q) => format!(
+                            "invalid progress in {} (moved to {}): {e}",
+                            json_path.display(),
+                            q.display()
+                        ),
+                        None => format!(
+                            "invalid progress in {} (could not preserve the original): {e}",
+                            json_path.display()
+                        ),
+                    };
+                    anyhow!(detail)
+                });
             }
 
             let career_ini_path = doc_dir
@@ -254,28 +266,155 @@ impl Progress {
         self.events.get(id).cloned().unwrap_or_default()
     }
 
+    /// Updates this progress with the outcome of a finished event.
     pub fn record(
         &mut self,
         event: &Event,
         series: Option<&Series>,
-        _result: &serde_json::Value,
+        result: &serde_json::Value,
     ) -> Result<String> {
-        // (kept minimal: delegates to reference logic; omitted heavy result parsing for brevity)
+        let position = result_position(result);
+        let total_time = result_number(result, &["totalTime", "TotalTime"]);
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs();
+
+        let mut medal = match position {
+            Some(1) => 3,
+            Some(2..=3) => 2,
+            Some(_) => 1,
+            None => 0,
+        };
+        let mut points = series
+            .filter(|s| s.championship())
+            .and_then(|s| position.and_then(|p| s.points.get(p.saturating_sub(1) as usize)))
+            .copied()
+            .unwrap_or(0);
+
+        if let Some(goal) = event.goals.first() {
+            let kind = goal.kind.to_uppercase();
+            if kind.contains("POSITION") && goal.objective > 0.0 {
+                medal = match position {
+                    Some(p) if p as f64 <= goal.objective => 3,
+                    Some(p) if p as f64 <= goal.objective + 1.0 => 2,
+                    Some(_) => 1,
+                    None => 0,
+                };
+            } else if kind.contains("TIME") && goal.objective > 0.0 {
+                medal = match total_time {
+                    Some(t) if t <= goal.objective => 3,
+                    Some(t) if t <= goal.objective * 1.05 => 2,
+                    Some(_) => 1,
+                    None => 0,
+                };
+            } else if kind.contains("POINTS") && goal.objective > 0.0 && points == 0 {
+                points = goal.objective as u32;
+            }
+        }
+
+        let score = points as f64 + medal as f64 * 10.0;
         let mut ep = self.get(&event.id);
         ep.attempts += 1;
         ep.updated_at = now;
+        ep.last_position = position;
+        ep.last_score = Some(score);
+        ep.best_score = Some(ep.best_score.unwrap_or_default().max(score));
+        ep.medal = ep.medal.max(medal);
         self.events.insert(event.id.clone(), ep);
+
+        if let Some(ser) = series
+            && ser.championship()
+        {
+            let table = self.championship_points.entry(ser.id.clone()).or_default();
+            let total = table.entry("player".to_string()).or_default();
+            *total = total.saturating_add(points);
+        }
         if let Some(ser) = series
             && ser.completed(self)
         {
             self.completed_series.insert(ser.id.clone());
         }
-        Ok("Event finished.".to_string())
+        Ok(format!(
+            "Result recorded: position {}, medal {}, points {}.",
+            position.map_or("?".to_string(), |p| p.to_string()),
+            medal,
+            points
+        ))
     }
+}
+
+fn result_number(result: &serde_json::Value, keys: &[&str]) -> Option<f64> {
+    for key in keys {
+        if let Some(v) = result.get(*key) {
+            if let Some(n) = v.as_f64() {
+                return Some(n);
+            }
+            if let Some(n) = v.as_str().and_then(|s| s.parse::<f64>().ok()) {
+                return Some(n);
+            }
+        }
+    }
+    None
+}
+
+fn result_position(result: &serde_json::Value) -> Option<u32> {
+    let drivers = result.get("result").and_then(|v| v.as_array())?;
+    let player_name = result
+        .get("playerName")
+        .or_else(|| result.get("PlayerName"))
+        .and_then(|v| v.as_str());
+    let (index, entry) = drivers
+        .iter()
+        .enumerate()
+        .find(|(_, d)| {
+            d.get("isPlayer").and_then(|v| v.as_bool()).unwrap_or(false)
+                || player_name
+                    .is_some_and(|name| d.get("driverName").and_then(|v| v.as_str()) == Some(name))
+        })
+        .or_else(|| drivers.iter().enumerate().next())?;
+    if let Some(p) = result_number(entry, &["position", "Position"]) {
+        return Some(p as u32);
+    }
+    Some(index as u32 + 1)
+}
+
+/// Finds the newest matching result file and records it, then saves progress.
+pub fn import_result(
+    root: &Path,
+    progress: &mut Progress,
+    event: &Event,
+    series: Option<&Series>,
+    result_path: &Path,
+) -> Result<String> {
+    let text = fs::read_to_string(result_path)
+        .with_context(|| format!("reading {}", result_path.display()))?;
+    let value: serde_json::Value = serde_json::from_str(&text)
+        .with_context(|| format!("parsing {}", result_path.display()))?;
+    let message = progress.record(event, series, &value)?;
+    progress.save(root)?;
+    Ok(message)
+}
+
+pub fn latest_result_for(root: &Path, event: &Event) -> Result<PathBuf> {
+    for path in crate::results::list_results(root) {
+        let Ok(result) = crate::results::parse_result(&path) else {
+            continue;
+        };
+        if !event.car.is_empty() && !result.car.eq_ignore_ascii_case(&event.car) {
+            continue;
+        }
+        if !event.track.is_empty()
+            && !result
+                .track
+                .to_lowercase()
+                .contains(&event.track.to_lowercase())
+        {
+            continue;
+        }
+        return Ok(path);
+    }
+    bail!("no result file found for {} / {}", event.car, event.track)
 }
 
 fn normalize_ini_uppercase(file: &mut IniFile) {
@@ -860,4 +999,89 @@ pub fn prepare(
 
     ini.save(&target_path)?;
     Ok(target_path)
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::*;
+
+    fn event(goals: Vec<Goal>) -> Event {
+        Event {
+            id: "ev1".into(),
+            name: "Test event".into(),
+            description: String::new(),
+            preview: None,
+            car: "car".into(),
+            track: "track".into(),
+            layout: String::new(),
+            weather: String::new(),
+            ambient: None,
+            road: None,
+            penalties: false,
+            fixed_setup: false,
+            ai_level: 90,
+            sessions: Vec::new(),
+            goals,
+            ini: IniFile::default(),
+        }
+    }
+
+    fn championship(event: Event) -> Series {
+        Series {
+            id: "s1".into(),
+            name: "Test series".into(),
+            description: String::new(),
+            preview: None,
+            requires: Vec::new(),
+            requires_any: false,
+            points: vec![10, 6, 3],
+            goal_points: 10,
+            goal_ranking: 0,
+            goal_medals: [0, 0, 0],
+            events: vec![event],
+            opponents: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn record_updates_medal_and_attempts() {
+        let mut progress = Progress::default();
+        let ev = event(vec![Goal {
+            kind: "POSITION".into(),
+            objective: 1.0,
+        }]);
+        let result = json!({
+            "playerName": "Player",
+            "totalTime": 100.0,
+            "result": [
+                {"driverName": "Other", "position": 1},
+                {"driverName": "Player", "position": 2, "isPlayer": true}
+            ]
+        });
+        let message = progress.record(&ev, None, &result).unwrap();
+        assert!(message.contains("position 2"));
+        let p = progress.get("ev1");
+        assert_eq!(p.attempts, 1);
+        assert_eq!(p.medal, 2);
+        assert_eq!(p.last_position, Some(2));
+    }
+
+    #[test]
+    fn record_awards_championship_points_and_completes_series() {
+        let mut progress = Progress::default();
+        let ev = event(Vec::new());
+        let series = championship(ev.clone());
+        let result = json!({
+            "playerName": "Player",
+            "result": [{"driverName": "Player", "position": 1, "isPlayer": true}]
+        });
+        progress.record(&ev, Some(&series), &result).unwrap();
+        assert_eq!(
+            progress.championship_points["s1"]["player"], 10,
+            "first place should award the configured points"
+        );
+        assert!(series.completed(&progress));
+    }
 }

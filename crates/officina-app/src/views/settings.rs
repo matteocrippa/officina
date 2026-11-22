@@ -1,6 +1,6 @@
 use egui::Ui;
 
-use crate::state::AppState;
+use crate::state::{AppState, StatusTarget};
 
 pub fn show(state: &mut AppState, ui: &mut Ui) {
     ui.heading("Settings");
@@ -18,7 +18,7 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
             });
         if theme != state.settings.theme {
             state.settings.theme = theme;
-            let _ = state.settings.save();
+            state.save_settings();
         }
     });
     ui.horizontal(|ui| {
@@ -35,7 +35,7 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
             } else {
                 Some(std::path::PathBuf::from(s))
             };
-            let _ = state.settings.save();
+            state.save_settings();
         }
     });
     ui.horizontal(|ui| {
@@ -52,7 +52,7 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
             } else {
                 Some(std::path::PathBuf::from(s))
             };
-            let _ = state.settings.save();
+            state.save_settings();
         }
     });
     let root = state
@@ -72,10 +72,13 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
     ui.heading("Settings backups");
     if ui.button("Create backup now").clicked() {
         if let Some(root) = state.settings.ac_root() {
-            match officina_core::backup::create_backup(&root) {
-                Ok(p) => state.game_settings_status = format!("Backup created: {}", p.display()),
-                Err(e) => state.game_settings_status = format!("Backup failed: {e:#}"),
-            }
+            state.game_settings_status = "Creating backup...".into();
+            state.run_status_task(StatusTarget::Settings, move || {
+                match officina_core::backup::create_backup(&root) {
+                    Ok(p) => format!("Backup created: {}", p.display()),
+                    Err(e) => format!("Backup failed: {e:#}"),
+                }
+            });
         } else {
             state.game_settings_status = "AC root not found.".into();
         }
@@ -93,10 +96,14 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
                 if ui.button("Restore").clicked()
                     && let Some(root) = state.settings.ac_root()
                 {
-                    match officina_core::backup::restore_backup(b, &root) {
-                        Ok(_) => state.game_settings_status = "Restored.".into(),
-                        Err(e) => state.game_settings_status = format!("Restore failed: {e:#}"),
-                    }
+                    let backup = b.clone();
+                    state.game_settings_status = "Restoring...".into();
+                    state.run_status_task(StatusTarget::Settings, move || {
+                        match officina_core::backup::restore_backup(&backup, &root) {
+                            Ok(_) => "Restored.".into(),
+                            Err(e) => format!("Restore failed: {e:#}"),
+                        }
+                    });
                 }
             });
         }
@@ -190,18 +197,20 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
     if ui.button("Launch Assetto Corsa").clicked() {
         if let Some(root) = state.settings.ac_root() {
             let qd = state.settings.last_session.clone().unwrap_or_default();
-            match officina_core::launch::write_race_ini(&root, &qd) {
-                Ok(_) => {
-                    let opts = officina_core::launch::LaunchOptions {
-                        proton: state.settings.proton.clone(),
-                    };
-                    match officina_core::launch::start(&root, &opts) {
-                        Ok(_) => state.game_settings_status = "Launched!".into(),
-                        Err(e) => state.game_settings_status = format!("Launch failed: {e:#}"),
+            let proton = state.settings.proton.clone();
+            state.game_settings_status = "Launching...".into();
+            state.run_status_task(StatusTarget::Settings, move || {
+                match officina_core::launch::write_race_ini(&root, &qd) {
+                    Ok(_) => {
+                        let opts = officina_core::launch::LaunchOptions { proton };
+                        match officina_core::launch::start(&root, &opts) {
+                            Ok(_) => "Launched!".into(),
+                            Err(e) => format!("Launch failed: {e:#}"),
+                        }
                     }
+                    Err(e) => format!("write_race_ini failed: {e:#}"),
                 }
-                Err(e) => state.game_settings_status = format!("write_race_ini failed: {e:#}"),
-            }
+            });
         } else {
             state.game_settings_status = "AC root not found.".into();
         }
@@ -214,7 +223,7 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
         let mut r = state.settings.update_repo.clone().unwrap_or_default();
         if ui.text_edit_singleline(&mut r).lost_focus() {
             state.settings.update_repo = if r.is_empty() { None } else { Some(r) };
-            let _ = state.settings.save();
+            state.save_settings();
         }
     });
     ui.label(format!(
@@ -223,21 +232,40 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
     ));
     if ui.button("Check for updates").clicked() {
         if let Some(repo) = state.settings.update_repo.clone() {
-            match crate::updater::check_latest(&repo) {
-                Ok(tag) => state.game_settings_status = format!("Latest: {tag}"),
-                Err(e) => state.game_settings_status = format!("Check failed: {e}"),
-            }
+            state.game_settings_status = "Checking...".into();
+            state.run_status_task(
+                StatusTarget::Settings,
+                move || match crate::updater::check_latest(&repo) {
+                    Ok(release) => {
+                        if crate::updater::update_available(
+                            &release.tag,
+                            crate::updater::current_version(),
+                        ) {
+                            format!("Update available: {}", release.tag)
+                        } else {
+                            format!("Already up to date ({})", release.tag)
+                        }
+                    }
+                    Err(e) => format!("Check failed: {e}"),
+                },
+            );
         } else {
             state.game_settings_status = "Set update_repo first.".into();
         }
     }
     if ui.button("Download & install update").clicked() {
         if let Some(repo) = state.settings.update_repo.clone() {
-            state.game_settings_status = "Updating...".into();
-            match crate::updater::download_and_install(&repo) {
-                Ok(msg) => state.game_settings_status = msg,
-                Err(e) => state.game_settings_status = format!("Update failed: {e}"),
-            }
+            state.game_settings_status = "Checking for update...".into();
+            state.run_status_task(
+                StatusTarget::Settings,
+                move || match crate::updater::check_latest(&repo) {
+                    Ok(release) => match crate::updater::download_and_install(&release) {
+                        Ok(msg) => msg,
+                        Err(e) => format!("Update failed: {e}"),
+                    },
+                    Err(e) => format!("Check failed: {e}"),
+                },
+            );
         } else {
             state.game_settings_status = "Set update_repo first.".into();
         }
@@ -248,7 +276,7 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
     }
     if ui.button("Auto-detect AC root").clicked() {
         state.settings.ac_root = None;
-        let _ = state.settings.save();
+        state.save_settings();
         state.trigger_scan();
     }
 }

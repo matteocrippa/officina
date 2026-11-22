@@ -11,3 +11,7 @@ pub mod settings;
 pub mod setups;
 pub mod tracks;
 pub mod weather;
+
+pub fn file_uri(path: &std::path::Path) -> String {
+    format!("file://{}", path.display().to_string().replace(' ', "%20"))
+}

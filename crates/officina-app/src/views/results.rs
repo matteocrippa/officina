@@ -5,16 +5,15 @@ use crate::state::AppState;
 pub fn show(state: &mut AppState, ui: &mut Ui) {
     ui.heading("Race Results");
 
-    let ac_root = state.settings.ac_root();
-    let results = ac_root
-        .as_ref()
-        .map(|r| officina_core::results::list_results(r))
-        .unwrap_or_default();
+    if state.results_paths.is_none() {
+        state.refresh_results();
+    }
+    let results = state.results_paths.clone().unwrap_or_default();
 
     ui.label(format!("{} result file(s)", results.len()));
 
     if ui.button("Rescan").clicked() {
-        // no-op scan trigger not needed; list is recomputed each frame
+        state.refresh_results();
     }
 
     egui::ScrollArea::vertical().show(ui, |ui| {

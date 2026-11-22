@@ -3,10 +3,7 @@ use officina_core::content;
 
 use crate::icons;
 use crate::state::AppState;
-
-fn file_uri(p: &std::path::Path) -> String {
-    format!("file://{}", p.display().to_string().replace(' ', "%20"))
-}
+use crate::views::file_uri;
 
 pub fn show(state: &mut AppState, ui: &mut Ui) {
     ui.heading(format!("{} Tracks", icons::nav(crate::state::Nav::Tracks)));
@@ -85,13 +82,7 @@ pub fn show(state: &mut AppState, ui: &mut Ui) {
         });
 
     if let Some(p) = uninstall_target {
-        match officina_core::trash::move_to_trash(&p) {
-            Ok(_) => {
-                state.status = "Moved to trash.".into();
-                state.trigger_scan();
-            }
-            Err(e) => state.status = format!("Uninstall failed: {e}"),
-        }
+        state.trash_path(p, "Moved to trash.");
     }
     if let Some((dir, id)) = disable_target
         && let Some(root) = state.settings.ac_root()

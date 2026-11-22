@@ -81,7 +81,7 @@ fn find_proton_ge(steam_roots: &[PathBuf]) -> Vec<PathBuf> {
     found
 }
 
-fn csp_installed(ac_root: &Path) -> Option<String> {
+pub fn csp_installed(ac_root: &Path) -> Option<String> {
     let ext = ac_root.join("extension");
     if !ext.is_dir() {
         return None;
@@ -101,17 +101,35 @@ fn csp_installed(ac_root: &Path) -> Option<String> {
 fn dxvk_present(steam_roots: &[PathBuf], compatdata: Option<&Path>) -> bool {
     if let Some(cd) = compatdata {
         let sys32 = cd.join("pfx/drive_c/windows/system32");
-        if sys32.join("dxgi.dll").is_file() || sys32.join("d3d11.dll").is_file() {
-            // Heuristic: DXVK renames; presence of these in prefix is not definitive.
-            // Fall through to directory check.
+        for dll in ["dxgi.dll", "d3d11.dll", "d3d10core.dll", "d3d9.dll"] {
+            if sys32.join(dll).is_file() {
+                return true;
+            }
         }
     }
     for root in steam_roots {
         if root.join("dxvk").is_dir() {
             return true;
         }
+        let tools = root.join("compatibilitytools.d");
+        if let Ok(entries) = fs::read_dir(&tools) {
+            for e in entries.flatten() {
+                let dxvk = e.path().join("files/lib/wine/dxvk");
+                if dxvk.is_dir() {
+                    return true;
+                }
+            }
+        }
+        let common = root.join("steamapps/common");
+        if let Ok(entries) = fs::read_dir(&common) {
+            for e in entries.flatten() {
+                let name = e.file_name().to_string_lossy().to_lowercase();
+                if name.starts_with("proton") && e.path().join("files/lib/wine/dxvk").is_dir() {
+                    return true;
+                }
+            }
+        }
     }
-    // Check common DXVK install location under a steam root's ubuntu runtime.
     false
 }
 
@@ -171,5 +189,24 @@ mod tests {
     #[test]
     fn linux_setup_command_nonempty() {
         assert!(!linux_setup_command().is_empty());
+    }
+
+    #[test]
+    fn dxvk_detected_in_proton_prefix() {
+        let tmp = tempfile::tempdir().unwrap();
+        let sys32 = tmp.path().join("pfx/drive_c/windows/system32");
+        fs::create_dir_all(&sys32).unwrap();
+        fs::write(sys32.join("dxgi.dll"), b"dll").unwrap();
+        assert!(dxvk_present(&[], Some(tmp.path())));
+    }
+
+    #[test]
+    fn dxvk_detected_in_steam_tool() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dxvk = tmp
+            .path()
+            .join("compatibilitytools.d/GE-Proton9-1/files/lib/wine/dxvk");
+        fs::create_dir_all(&dxvk).unwrap();
+        assert!(dxvk_present(&[tmp.path().to_path_buf()], None));
     }
 }

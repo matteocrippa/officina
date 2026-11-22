@@ -1,8 +1,18 @@
-use crate::state::{AppMsg, AppState, Nav};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+use crate::state::{AppMsg, AppState, Nav, StatusTarget};
 use crate::views;
 
 pub struct App {
     pub state: AppState,
+    shutdown: Arc<AtomicBool>,
+}
+
+impl Drop for App {
+    fn drop(&mut self) {
+        self.shutdown.store(true, Ordering::Relaxed);
+    }
 }
 
 impl Default for App {
@@ -20,56 +30,59 @@ impl Default for App {
                 });
             }
         }
+        let shutdown = Arc::new(AtomicBool::new(false));
         // File watcher: poll content dirs and trigger rescan on change.
         if let Some(root) = s.settings.ac_root() {
             let tx = s.tx.clone();
+            let stop = shutdown.clone();
             std::thread::spawn(move || {
                 use std::collections::BTreeSet;
                 use std::fs;
                 use std::time::Duration;
-                let mut last: Option<BTreeSet<(String, u64)>> = None;
-                loop {
+
+                fn modified_millis(path: &std::path::Path) -> u128 {
+                    fs::metadata(path)
+                        .ok()
+                        .and_then(|m| m.modified().ok())
+                        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                        .map(|d| d.as_millis())
+                        .unwrap_or(0)
+                }
+
+                fn snapshot(root: &std::path::Path) -> BTreeSet<(String, u128)> {
                     let mut sig = BTreeSet::new();
                     for sub in ["cars", "tracks", "weather"] {
                         let dir = root.join("content").join(sub);
-                        if let Ok(meta) = fs::metadata(&dir) {
-                            let mt = meta
-                                .modified()
-                                .ok()
-                                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-                                .map(|d| d.as_secs())
-                                .unwrap_or(0);
-                            sig.insert((format!("{sub}/."), mt));
-                        }
+                        sig.insert((format!("{sub}/."), modified_millis(&dir)));
                         if let Ok(entries) = fs::read_dir(&dir) {
                             for e in entries.flatten() {
-                                if let Ok(m) = fs::metadata(e.path()) {
-                                    let mt = m
-                                        .modified()
-                                        .ok()
-                                        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-                                        .map(|d| d.as_secs())
-                                        .unwrap_or(0);
-                                    sig.insert((
-                                        format!("{}/{}", sub, e.file_name().to_string_lossy()),
-                                        mt,
-                                    ));
-                                }
+                                let path = e.path();
+                                sig.insert((
+                                    format!("{}/{}", sub, e.file_name().to_string_lossy()),
+                                    modified_millis(&path),
+                                ));
                             }
                         }
                     }
-                    if let Some(prev) = &last
-                        && *prev != sig
-                    {
-                        let _ = tx.send(AppMsg::Rescan);
-                    }
-                    last = Some(sig);
+                    sig
+                }
+
+                let mut last = snapshot(&root);
+                while !stop.load(Ordering::Relaxed) {
                     std::thread::sleep(Duration::from_secs(5));
+                    if stop.load(Ordering::Relaxed) {
+                        break;
+                    }
+                    let current = snapshot(&root);
+                    if current != last {
+                        let _ = tx.send(AppMsg::Rescan);
+                        last = current;
+                    }
                 }
             });
         }
         s.trigger_scan();
-        Self { state: s }
+        Self { state: s, shutdown }
     }
 }
 
@@ -106,16 +119,19 @@ impl eframe::App for App {
                         self.state.tracks.len(),
                         self.state.weather.len()
                     );
-                    // Default qd selections.
-                    if self.state.qd_car.is_empty()
-                        && let Some(c) = self.state.cars.first()
-                    {
+                    // Default qd selections to the first available item when the
+                    // restored selection is empty or stale.
+                    let car_valid = self.state.cars.iter().any(|c| c.id == self.state.qd_car);
+                    if !car_valid && let Some(c) = self.state.cars.first() {
                         self.state.qd_car = c.id.clone();
-                        if let Some(s) = c.skins.first() {
-                            self.state.qd_skin = s.id.clone();
-                        }
+                        self.state.qd_skin =
+                            c.skins.first().map(|s| s.id.clone()).unwrap_or_default();
                     }
-                    if self.state.qd_track.is_empty() {
+                    let track_valid = !self.state.qd_track.is_empty()
+                        && officina_core::content::track_entries(&self.state.tracks)
+                            .iter()
+                            .any(|e| e.track_id == self.state.qd_track);
+                    if !track_valid {
                         let entries = officina_core::content::track_entries(&self.state.tracks);
                         if let Some(e) = entries.first() {
                             self.state.qd_track = e.track_id.clone();
@@ -140,6 +156,7 @@ impl eframe::App for App {
                     self.state.install_archive = Some(archive);
                     self.state.install_plan = Some(items);
                     self.state.install_busy = false;
+                    self.state.confirm_overwrite = false;
                     self.state.install_status = "Plan ready. Click 'Install now'.".into();
                 }
                 AppMsg::InstallDone { written } => {
@@ -158,6 +175,10 @@ impl eframe::App for App {
                     self.state.career_loading = false;
                     self.state.career_status = "Loaded.".into();
                 }
+                AppMsg::CareerResultImported { progress, message } => {
+                    self.state.career_progress = Some(progress);
+                    self.state.career_status = message;
+                }
                 AppMsg::GameConfigLoaded(gc) => {
                     self.state.game_config = Some(gc);
                     self.state.game_settings_loading = false;
@@ -169,6 +190,21 @@ impl eframe::App for App {
                 }
                 AppMsg::Rescan => {
                     self.state.trigger_scan();
+                }
+                AppMsg::Status { target, message } => match target {
+                    StatusTarget::Settings => self.state.game_settings_status = message,
+                    StatusTarget::CheckMods => self.state.check_mods_status = message,
+                    StatusTarget::Career => {
+                        self.state.career_loading = false;
+                        if !message.starts_with("Launched") {
+                            self.state.career_auto_import_pending = false;
+                        }
+                        self.state.career_status = message;
+                    }
+                    StatusTarget::Setups => self.state.status = message,
+                },
+                AppMsg::Warning(w) => {
+                    self.state.status = w;
                 }
                 AppMsg::Error(e) => {
                     self.state.scanning = false;

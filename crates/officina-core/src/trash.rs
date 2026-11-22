@@ -6,7 +6,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn move_to_trash(path: &Path) -> std::io::Result<PathBuf> {
     // Try gio first (GNOME/freedesktop).
-    if command_exists("gio") {
+    if crate::command_exists("gio") {
         let status = std::process::Command::new("gio")
             .arg("trash")
             .arg(path)
@@ -17,7 +17,7 @@ pub fn move_to_trash(path: &Path) -> std::io::Result<PathBuf> {
             return Ok(PathBuf::from("~/.local/share/Trash"));
         }
     }
-    if command_exists("trash-put") {
+    if crate::command_exists("trash-put") {
         let status = std::process::Command::new("trash-put").arg(path).status();
         if let Ok(s) = status
             && s.success()
@@ -66,22 +66,9 @@ pub fn move_to_trash(path: &Path) -> std::io::Result<PathBuf> {
     Ok(dest)
 }
 
-fn command_exists(cmd: &str) -> bool {
-    std::process::Command::new("sh")
-        .arg("-c")
-        .arg(format!("command -v {cmd} >/dev/null 2>&1"))
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false)
-}
-
 fn copy_recursive(src: &Path, dst: &Path) -> std::io::Result<()> {
     if src.is_dir() {
-        fs::create_dir_all(dst)?;
-        for e in fs::read_dir(src)? {
-            let e = e?;
-            copy_recursive(&e.path(), &dst.join(e.file_name()))?;
-        }
+        crate::install::copy_dir(src, dst).map_err(std::io::Error::other)?;
     } else {
         if let Some(p) = dst.parent() {
             fs::create_dir_all(p)?;

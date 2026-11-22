@@ -32,10 +32,15 @@ enum Commands {
         kind: String,
     },
     /// Install a mod archive.
-    Install { archive: PathBuf },
+    Install {
+        archive: PathBuf,
+        /// Overwrite existing content and allow generic patches into the AC root.
+        #[arg(long)]
+        force: bool,
+    },
     /// Install a community tool from a GitHub repo or a direct archive URL.
     InstallTool {
-        /// GitHub repo or archive URL (e.g. ac-custom-shaders-patch/app-paintshop, or https://.../tool.zip).
+        /// GitHub repo or archive URL (.zip, .7z, .rar, .tar, .tar.gz, .tgz).
         repo: String,
     },
     /// Validate installed content (missing files, AI lines, liveries).
@@ -66,7 +71,7 @@ fn main() -> anyhow::Result<()> {
     match cli.command {
         Some(Commands::Where) => cli::where_cmd(),
         Some(Commands::List { kind }) => cli::list_cmd(&kind),
-        Some(Commands::Install { archive }) => cli::install_cmd(archive),
+        Some(Commands::Install { archive, force }) => cli::install_cmd(archive, force),
         Some(Commands::InstallTool { repo }) => cli::install_tool_cmd(&repo),
         Some(Commands::Check) => cli::check_cmd(),
         Some(Commands::Acd { action }) => match action {

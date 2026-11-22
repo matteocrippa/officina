@@ -27,8 +27,11 @@ jobs:
           mkdir -p dist
           cp target/release/officina dist/
           tar -czf officina-linux-x86_64.tar.gz -C dist officina
+          sha256sum officina-linux-x86_64.tar.gz > officina-linux-x86_64.tar.gz.sha256
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          files: officina-linux-x86_64.tar.gz
+          files: |
+            officina-linux-x86_64.tar.gz
+            officina-linux-x86_64.tar.gz.sha256
           generate_release_notes: true

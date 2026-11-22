@@ -39,25 +39,58 @@ impl Settings {
         dirs::config_dir().map(|d| d.join("officina").join("settings.toml"))
     }
 
-    pub fn load() -> Self {
+    /// Loads settings and reports any corrupt file that was preserved instead
+    /// of being overwritten.
+    pub fn load() -> (Self, Option<String>) {
+        let mut warning = None;
         if let Some(p) = Self::path() {
-            if p.exists()
-                && let Ok(text) = fs::read_to_string(&p)
-                && let Ok(s) = toml::from_str::<Settings>(&text)
-            {
-                return s;
+            if p.exists() {
+                match fs::read_to_string(&p)
+                    .ok()
+                    .and_then(|text| toml::from_str::<Settings>(&text).ok())
+                {
+                    Some(s) => return (s, None),
+                    None => {
+                        warning = Some(match crate::quarantine_corrupt(&p) {
+                            Some(q) => format!(
+                                "Corrupt settings file moved to {}; defaults loaded.",
+                                q.display()
+                            ),
+                            None => {
+                                "Corrupt settings file could not be preserved; defaults loaded."
+                                    .into()
+                            }
+                        });
+                    }
+                }
             }
             // Migrate legacy settings.json if present.
             let legacy = p.with_file_name("settings.json");
-            if legacy.exists()
-                && let Ok(text) = fs::read_to_string(&legacy)
-                && let Ok(s) = serde_json::from_str::<Settings>(&text)
-            {
-                let _ = s.save();
-                return s;
+            if legacy.exists() {
+                match fs::read_to_string(&legacy)
+                    .ok()
+                    .and_then(|text| serde_json::from_str::<Settings>(&text).ok())
+                {
+                    Some(s) => {
+                        if let Err(e) = s.save() {
+                            warning = Some(format!(
+                                "Legacy settings migrated in memory but could not be saved: {e:#}"
+                            ));
+                        }
+                        return (s, warning);
+                    }
+                    None => {
+                        if let Some(q) = crate::quarantine_corrupt(&legacy) {
+                            warning = Some(format!(
+                                "Corrupt legacy settings moved to {}; defaults loaded.",
+                                q.display()
+                            ));
+                        }
+                    }
+                }
             }
         }
-        Self::default()
+        (Self::default(), warning)
     }
 
     pub fn save(&self) -> Result<()> {

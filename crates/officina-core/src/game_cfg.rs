@@ -933,6 +933,18 @@ impl GameConfig {
             .set(key, value);
     }
 
+    pub fn entries(&self, file: &str, section: &str) -> Vec<(String, String)> {
+        self.files
+            .get(file)
+            .and_then(|ini| ini.section(section))
+            .map(|sec| {
+                sec.entries()
+                    .map(|(k, v)| (k.to_string(), v.to_string()))
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
     pub fn number(&self, file: &str, section: &str, key: &str) -> f64 {
         self.get(file, section, key)
             .and_then(|v| v.parse().ok())
@@ -963,5 +975,31 @@ impl GameConfig {
             self.saved.insert(name.to_string(), text);
         }
         Ok(dirty)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn entries_exposes_keyboard_bindings() {
+        let tmp = tempfile::tempdir().unwrap();
+        let defaults = tmp.path().join("defaults");
+        let docs = tmp.path().join("docs");
+        let pps = tmp.path().join("ppfilters");
+        fs::create_dir_all(&defaults).unwrap();
+        fs::create_dir_all(&docs).unwrap();
+        fs::create_dir_all(&pps).unwrap();
+        fs::write(
+            defaults.join("controls.ini"),
+            "[KEYBOARD]\nSTEER_LEFT = 37\nSTEER_RIGHT = 39\n",
+        )
+        .unwrap();
+        let gc = GameConfig::load_from(&defaults, &docs, &pps).unwrap();
+        let entries = gc.entries("controls.ini", "KEYBOARD");
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].0, "STEER_LEFT");
+        assert_eq!(entries[1].1, "39");
     }
 }

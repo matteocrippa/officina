@@ -33,6 +33,22 @@ fn int_to_byte(v: i32) -> u8 {
     (v.wrapping_rem(256).wrapping_add(256)).wrapping_rem(256) as u8
 }
 
+fn safe_div(a: i32, b: i32) -> i32 {
+    if b == 0 || (a == i32::MIN && b == -1) {
+        0
+    } else {
+        a.wrapping_div(b)
+    }
+}
+
+fn safe_rem(a: i32, b: i32) -> i32 {
+    if b == 0 || (a == i32::MIN && b == -1) {
+        0
+    } else {
+        a.wrapping_rem(b)
+    }
+}
+
 pub fn derive_key(key_source: &str) -> Vec<u8> {
     let s: Vec<i32> = key_source
         .to_lowercase()
@@ -56,7 +72,7 @@ pub fn derive_key(key_source: &str) -> Vec<u8> {
     let mut i = 1;
     while i < len - 3 {
         n = n.wrapping_mul(at(i));
-        n = n.wrapping_div(at(i + 1) + 27);
+        n = safe_div(n, at(i + 1) + 27);
         n = n.wrapping_add(-27 - at(i - 1));
         i += 3;
     }
@@ -90,7 +106,7 @@ pub fn derive_key(key_source: &str) -> Vec<u8> {
     let mut n = 171i32;
     let mut i = 0;
     while i < len - 2 {
-        n = n.wrapping_rem(at(i));
+        n = safe_rem(n, at(i));
         i += 2;
     }
     let b7 = int_to_byte(n);
@@ -98,7 +114,7 @@ pub fn derive_key(key_source: &str) -> Vec<u8> {
     let mut n = 171i32;
     let mut i = 0;
     while i < len - 1 {
-        n = n.wrapping_div(at(i)).wrapping_add(at(i + 1));
+        n = safe_div(n, at(i)).wrapping_add(at(i + 1));
         i += 1;
     }
     let b8 = int_to_byte(n);
@@ -144,7 +160,8 @@ impl<'a> Cursor<'a> {
             "unexpected end of data.acd at {}",
             self.pos
         );
-        let v = i32::from_le_bytes(self.bytes[self.pos..end].try_into().unwrap());
+        let slice = &self.bytes[self.pos..end];
+        let v = i32::from_le_bytes([slice[0], slice[1], slice[2], slice[3]]);
         self.pos = end;
         Ok(v)
     }
@@ -184,7 +201,11 @@ pub fn read_bytes(bytes: &[u8], key_source: &str) -> Result<Vec<AcdEntry>> {
             data_len >= 0,
             "negative entry length in data.acd for {name}"
         );
-        let raw = c.take(data_len as usize * 4)?;
+        let raw_len = usize::try_from(data_len)
+            .ok()
+            .and_then(|n| n.checked_mul(4))
+            .context("data.acd entry length overflow")?;
+        let raw = c.take(raw_len)?;
         let mut data: Vec<u8> = raw.iter().step_by(4).copied().collect();
         decrypt(&mut data, &key);
         entries.push(AcdEntry { name, data });
@@ -217,7 +238,12 @@ pub fn write(acd_path: &Path, entries: &[AcdEntry]) -> Result<()> {
 }
 
 pub fn unpack(acd_path: &Path, out_dir: &Path) -> Result<usize> {
-    let entries = read(acd_path)?;
+    unpack_with_key(acd_path, out_dir, &key_source_for(acd_path))
+}
+
+pub fn unpack_with_key(acd_path: &Path, out_dir: &Path, key_source: &str) -> Result<usize> {
+    let bytes = fs::read(acd_path).with_context(|| format!("reading {}", acd_path.display()))?;
+    let entries = read_bytes(&bytes, key_source)?;
     fs::create_dir_all(out_dir)?;
     for e in &entries {
         let name = Path::new(&e.name);
@@ -238,22 +264,44 @@ pub fn unpack(acd_path: &Path, out_dir: &Path) -> Result<usize> {
 }
 
 pub fn pack(data_dir: &Path, acd_path: &Path) -> Result<usize> {
-    let mut files: Vec<PathBuf> = fs::read_dir(data_dir)?
-        .filter_map(|e| e.ok())
-        .map(|e| e.path())
-        .filter(|p| p.is_file())
-        .collect();
-    files.sort();
+    pack_with_key(data_dir, acd_path, &key_source_for(acd_path))
+}
+
+pub fn pack_with_key(data_dir: &Path, acd_path: &Path, key_source: &str) -> Result<usize> {
+    let mut files: Vec<(String, PathBuf)> = Vec::new();
+    for entry in walkdir::WalkDir::new(data_dir)
+        .min_depth(1)
+        .follow_links(false)
+    {
+        let entry = entry.with_context(|| format!("walking {}", data_dir.display()))?;
+        if !entry.file_type().is_file() {
+            continue;
+        }
+        let name = entry
+            .path()
+            .strip_prefix(data_dir)
+            .context("entry outside data directory")?
+            .to_string_lossy()
+            .replace('\\', "/");
+        ensure!(
+            !name.starts_with('/') && !name.split('/').any(|part| part == ".." || part.is_empty()),
+            "unsafe entry name from {}",
+            entry.path().display()
+        );
+        files.push((name, entry.path().to_path_buf()));
+    }
+    files.sort_by(|a, b| a.0.cmp(&b.0));
     let entries = files
         .iter()
-        .map(|p| {
+        .map(|(name, path)| {
             Ok(AcdEntry {
-                name: p.file_name().unwrap().to_string_lossy().into_owned(),
-                data: fs::read(p)?,
+                name: name.clone(),
+                data: fs::read(path)?,
             })
         })
         .collect::<Result<Vec<_>>>()?;
-    write(acd_path, &entries)?;
+    let bytes = write_bytes(&entries, key_source)?;
+    fs::write(acd_path, bytes).with_context(|| format!("writing {}", acd_path.display()))?;
     Ok(entries.len())
 }
 
@@ -299,5 +347,51 @@ mod tests {
     fn derive_key_nonempty() {
         let k = derive_key("abc");
         assert!(!k.is_empty());
+    }
+
+    #[test]
+    fn derive_key_with_zero_code_units() {
+        let k = derive_key("\0\0\0");
+        assert!(!k.is_empty());
+    }
+
+    #[test]
+    fn malformed_lengths_return_errors() {
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&2i32.to_le_bytes());
+        bytes.extend_from_slice(b"a");
+        bytes.extend_from_slice(&i32::MAX.to_le_bytes());
+        assert!(read_bytes(&bytes, "car").is_err());
+
+        let mut truncated = Vec::new();
+        truncated.extend_from_slice(&2i32.to_le_bytes());
+        truncated.extend_from_slice(b"a");
+        truncated.extend_from_slice(&1i32.to_le_bytes());
+        assert!(read_bytes(&truncated, "car").is_err());
+    }
+
+    #[test]
+    fn nested_unpack_pack_roundtrip() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("source.acd");
+        let entries = vec![
+            AcdEntry {
+                name: "a.ini".into(),
+                data: b"top".to_vec(),
+            },
+            AcdEntry {
+                name: "nested/b.ini".into(),
+                data: b"inner".to_vec(),
+            },
+        ];
+        fs::write(&source, write_bytes(&entries, "mycar").unwrap()).unwrap();
+        let out = dir.path().join("data");
+        unpack_with_key(&source, &out, "mycar").unwrap();
+        assert!(out.join("nested/b.ini").is_file());
+
+        let repacked = dir.path().join("repacked.acd");
+        pack_with_key(&out, &repacked, "mycar").unwrap();
+        let round = read_bytes(&fs::read(&repacked).unwrap(), "mycar").unwrap();
+        assert_eq!(round, entries);
     }
 }
